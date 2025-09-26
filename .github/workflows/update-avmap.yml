@@ -1,0 +1,36 @@
+name: Update avmap.io Data
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'events.csv'
+      - 'geometries/**'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-avmap-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout av-map-data
+        uses: actions/checkout@v4
+
+      - name: Validate Data
+        run: python3 scripts/validate.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Trigger avmap.io Rebuild
+        run: |
+          # Option 1: Repository dispatch to trigger avmap.io rebuild
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.AVMAP_IO_TOKEN }}" \
+            https://api.github.com/repos/jacksonlester/avmap.io/dispatches \
+            -d '{"event_type":"data_updated","client_payload":{"source":"av-map-data","trigger":"${{ github.event.head_commit.message }}"}}'
