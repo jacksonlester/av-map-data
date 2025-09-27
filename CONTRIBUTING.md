@@ -1,23 +1,23 @@
 # Contributing to AV Map Data
 
-Thank you for your interest in contributing to the AV Map Data repository! This dataset currently tracks autonomous vehicle service deployments across the United States, with plans to expand globally, and powers [avmap.io](https://avmap.io).
+Thank you for your interest in contributing to the AV Map Data repository! This dataset tracks autonomous vehicle service deployments across the United States and powers [avmap.io](https://avmap.io).
 
-**Global contributions welcome!** While our current data focuses on the US, we're ready to accept data from autonomous vehicle services worldwide.
+Global contributions welcome! While our current data focuses on the US, we accept data from autonomous vehicle services worldwide.
 
-**For a high-level overview of the project, see [README.md](README.md). This guide focuses on implementation details for contributors.**
+For a high-level overview of the project, see [README.md](README.md). This guide focuses on implementation details for contributors.
 
 ## Event Sourcing Model
 
-This repository uses an **event sourcing** approach where each row represents a single change to an autonomous vehicle service. This allows us to track the complete evolution of services over time.
+This repository uses event sourcing where each row represents a single change to an autonomous vehicle service. This allows us to track the complete evolution of services over time.
 
 ### Two Types of Events:
 
-1. **Service Creation** (`service_created`) - Complete initial service setup
-2. **Service Updates** - Single attribute changes (geometry, vehicles, fares, etc.)
+1. Service Creation (`service_created`) - Complete initial service setup
+2. Service Updates - Single attribute changes (geometry, vehicles, fares, etc.)
 
 ## CSV Structure
 
-Our 14-column structure captures all service attributes:
+The 14-column structure captures all service attributes:
 
 | Column           | Description                    | Example                                      |
 | ---------------- | ------------------------------ | -------------------------------------------- |
@@ -40,13 +40,13 @@ Our 14-column structure captures all service attributes:
 
 ### Adding a New Service Launch
 
-For `service_created` events, **fill in ALL service attributes**:
+For `service_created` events, fill in ALL service attributes:
 
 ```csv
-2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
+2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/, Zoox Las Vegas service
 ```
 
-**Required for service_created:**
+Required for service_created:
 
 - `date`, `event_type`, `company`, `city`
 - `vehicles`, `platform`, `fares`, `direct_booking`, `supervision`, `access`
@@ -55,31 +55,7 @@ For `service_created` events, **fill in ALL service attributes**:
 
 ### Adding Service Updates
 
-For update events, **only fill the field that changed**:
-
-#### Boundary Changes
-
-```csv
-2025-06-17,geometry_updated,,Silicon Valley,waymo-silicon-valley-june-17-2025-boundary.geojson,,,,,,,,https://www.theverge.com/news/688202/waymo-sf-la-service-area-expand-robotaxi,Service area boundary update
-```
-
-#### Vehicle Updates
-
-```csv
-2023-03-30,vehicle_types_updated,,Phoenix,,Jaguar I-Pace,,,,,,,https://techcrunch.com/2023/03/30/waymo-retires-its-self-driving-chrysler-pacifica-minivan/,Vehicle fleet update
-```
-
-#### Policy Changes
-
-```csv
-2020-10-08,fares_policy_changed,,Phoenix,,,,Yes,,,,,https://waymo.com/blog/2020/10/waymo-is-opening-its-fully-driverless-service-in-phoenix,Fares policy update
-```
-
-#### Access Changes
-
-```csv
-2024-06-25,access_policy_changed,,San Francisco,,,,,,,Public,,https://waymo.com/blog/2024/06/waymo-one-is-now-open-to-everyone-in-san-francisco,Access policy update
-```
+For update events, only fill the date of the change, the event type, the company, the city, the field that changed, and a source url that provides a source for source describing the update.
 
 ## Event Types
 
@@ -87,53 +63,48 @@ Use these standardized event types:
 
 ### Service Lifecycle
 
-- **`service_created`** - New service launch (fill ALL fields)
-- **`service_ended`** - Service discontinued
+- `service_created` - New service launch (fill ALL fields)
+- `service_ended` - Service discontinued
 
 ### Service Changes (fill ONLY the changed field)
 
-- **`geometry_updated`** - Service area boundary changes
-- **`vehicle_types_updated`** - Fleet vehicle changes
-- **`platform_updated`** - Booking platform changes
-- **`fares_policy_changed`** - Fare policy changes
-- **`access_policy_changed`** - Access changes (public, waitlist, etc.)
-- **`supervision_updated`** - Supervision level changes
-- **`fleet_partner_changed`** - Fleet partnership changes
+- `geometry_updated` - Service area boundary changes
+- `vehicle_types_updated` - Fleet vehicle changes
+- `platform_updated` - Booking platform changes
+- `fares_policy_changed` - Fare policy changes
+- `access_policy_changed` - Access changes (public, waitlist, etc.)
+- `supervision_updated` - Supervision level changes
+- `fleet_partner_changed` - Fleet partnership changes
 
 ## Service Attributes Guide
 
-**Important:** The values below are examples from existing services. **You can add new values** when documenting new companies, vehicles, platforms, or policies that aren't listed here!
+The values below are examples from existing services. You can add new values when documenting new companies, vehicles, platforms, or policies that aren't listed here.
 
 ### Companies
 
-Current companies in the dataset: `Waymo`, `Tesla`, `Zoox`, `May Mobility`
-
-**New company?** Use the official company name (e.g., `Aurora`, `Cruise`, `Motional`, `Nuro`, `Argo AI`)
+Current companies in the dataset include: `Waymo`, `Tesla`, `Zoox`, `May Mobility`
 
 ### Vehicles
 
 Examples of vehicle models used:
 
-- `Tesla Model Y`, `Tesla Cybercab`
+- `Tesla Model Y`
 - `Jaguar I-Pace`
 - `Chrysler Pacifica Hybrid`
+- 'Jaguar I-Pace and Chrysler Pacifica Hybrid'
 - `Toyota Sienna`
 - `Zoox Robotaxi`
-
-**New vehicles?** Use the official vehicle name (e.g., `Mercedes EQS`, `Ford E-Transit`, `Cruise Origin`)
 
 ### Platform
 
 Examples of booking platforms:
 
-- `Waymo` (Waymo One app)
-- `Uber` (through Uber app)
-- `Lyft` (through Lyft app)
-- `Robotaxi` (Tesla's app)
+- `Waymo` (Waymo app, formerly known as Waymo One)
+- `Uber` (Uber rider app)
+- `Lyft` (Lyft rider app)
+- `Robotaxi` (Tesla's Robotaxi app)
 - `Cruise` (Cruise app)
 - `Zoox` (Zoox app)
-
-**New platform?** Use the official app/platform name (e.g., `Aurora`, `Motional`, `Via`)
 
 ### Fares
 
@@ -142,19 +113,16 @@ Examples of booking platforms:
 
 ### Direct Booking
 
-- `Yes` - Can book directly through company app
-- `No` - Must use third-party platform (Uber/Lyft)
+- `Yes` - Can book directly as an av-only product
+- `No` - Must book with a ride product where you may get an AV and you may not (like with Waymo on UberX in Atlanta or Austin)
 
 ### Supervision
 
 Examples of supervision levels:
 
-- `Autonomous` - No human driver
+- `Autonomous` - No human driver or attendant present in vehicle
 - `Safety Driver` - Human safety driver present
-- `Safety Attendant` - Remote human monitoring
-- `Remote Supervision` - Remote human oversight
-
-**New supervision model?** Describe it clearly (e.g., `Teleoperator`, `Safety Engineer`)
+- `Safety Attendant` - Human in the vehicle monitoring autonomous driving
 
 ### Access
 
@@ -162,18 +130,14 @@ Examples of access policies:
 
 - `Public` - Open to everyone
 - `Waitlist` - Must join waitlist
-- `Employees Only` - Company employees only
-- `Invite Only` - By invitation
-
-**New access model?** Describe it clearly (e.g., `Beta Users`, `Premium Members`, `Local Residents`)
 
 ## Geometry Files
 
 If adding service area boundaries:
 
-1. **Create GeoJSON file** in `geometries/` folder
-2. **Naming convention**: `{company}-{city}-{month}-{day}-{year}-boundary.geojson`
-3. **Standard format**:
+1. Create GeoJSON file in `geometries/` folder
+2. Naming convention: `{company}-{city}-{month}-{day}-{year}-boundary.geojson`
+3. Standard format:
 
 ```json
 {
@@ -210,45 +174,45 @@ The validator checks:
 
 ## Submission Process
 
-1. **Fork this repository**
-2. **Create a feature branch** (`feature/add-cruise-miami`)
-3. **Make your changes** following the event sourcing model
-4. **Run validation** to ensure data quality
-5. **Submit a pull request** with clear description
+1. Fork this repository
+2. Create a feature branch (`feature/add-cruise-miami`)
+3. Make your changes following the event sourcing model
+4. Run validation to ensure data quality
+5. Submit a pull request with clear description
 
 ## Examples
 
 ### Complete Service Launch
 
 ```csv
-2025-03-11,service_created,Waymo,Silicon Valley,waymo-silicon-valley-march-11-2025-boundary.geojson,Jaguar I-Pace,Waymo,Yes,Yes,Autonomous,Public,,https://www.mercurynews.com/2025/03/11/alphabets-waymo-to-offer-self-driving-rides-in-silicon-valley/,Waymo Silicon Valley service
+2025-03-11,service_created,Waymo,Silicon Valley,waymo-silicon-valley-march-11-2025-boundary.geojson,Jaguar I-Pace,Waymo,Yes,Yes,Autonomous,Public,,https://www.mercurynews.com/2025/03/11/alphabets-waymo-to-offer-self-driving-rides-in-silicon-valley/, Waymo Silicon Valley service
 ```
 
 ### Service Area Expansion
 
 ```csv
-2025-07-14,geometry_updated,,Austin,tesla-austin-july-14-2025-boundary.geojson,,,,,,,,https://www.businessinsider.com/tesla-new-robotaxi-geofence-austin-shape-elon-musk-bigger-waymo-2025-7,Service area boundary update
+2025-07-14,geometry_updated,Tesla,Austin,tesla-austin-july-14-2025-boundary.geojson,,,,,,,,https://www.businessinsider.com/tesla-new-robotaxi-geofence-austin-shape-elon-musk-bigger-waymo-2025-7, Service area boundary update
 ```
 
 ### Fleet Update
 
 ```csv
-2020-10-08,vehicle_types_updated,,Phoenix,,Chrysler Pacifica Hybrid,,,,,,,https://techcrunch.com/2019/06/17/waymos-self-driving-jaguar-i-pace-vehicles-are-now-testing-on-public-roads/,Vehicle fleet expansion - adding Jaguar I-Pace
+2020-10-08,vehicle_types_updated,Waymo,Phoenix,,Chrysler Pacifica Hybrid,,,,,,,https://techcrunch.com/2019/06/17/waymos-self-driving-jaguar-i-pace-vehicles-are-now-testing-on-public-roads/, Vehicle fleet expansion - adding Jaguar I-Pace
 ```
 
 ### Policy Change
 
 ```csv
-2024-11-12,access_policy_changed,,Los Angeles,,,,,,,Public,,https://waymo.com/blog/2024/11/waymo-one-open-to-all-in-los-angeles,Access policy update
+2024-11-12,access_policy_changed,Waymo,Los Angeles,,,,,,,Public,,https://waymo.com/blog/2024/11/waymo-one-open-to-all-in-los-angeles, Access policy update
 ```
 
 ## Data Quality Guidelines
 
-- **Accuracy first** - Only submit verified information
-- **Single changes** - Update events should modify only one attribute
-- **Complete initializations** - Service creation must include all attributes
-- **Reliable sources** - Always include source URL when available
-- **Precise boundaries** - GeoJSON should be as accurate as possible
+- Accuracy first - Only submit verified information
+- Single changes - Update events should modify only one attribute
+- Complete initializations - Service creation must include all attributes
+- Reliable sources - Always include source URL when available
+- Precise boundaries - GeoJSON should be as accurate as possible
 
 ## Questions?
 
