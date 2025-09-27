@@ -91,7 +91,7 @@ Examples of vehicle models used:
 - `Tesla Model Y`
 - `Jaguar I-Pace`
 - `Chrysler Pacifica Hybrid`
-- 'Jaguar I-Pace and Chrysler Pacifica Hybrid'
+- `Jaguar I-Pace and Chrysler Pacifica Hybrid`
 - `Toyota Sienna`
 - `Zoox Robotaxi`
 
