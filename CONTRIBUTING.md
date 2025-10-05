@@ -4,28 +4,28 @@ This dataset tracks autonomous vehicle deployments and powers [avmap.io](https:/
 
 ## Event sourcing basics
 
-Each row in `events.csv` represents one change to a service. Service creation events include all attributes. Updates include only what changed.
+Each row in `events.csv` represents one change to a service. Service creation events include all attributes. **Update events must include the complete new state for the field being updated** (not deltas) and always include the `company` field to identify which service is being updated.
 
 ## CSV structure
 
 14 columns capture service attributes:
 
-| Column           | Description                | Example                                      |
-| ---------------- | -------------------------- | -------------------------------------------- |
-| `date`           | Event date (YYYY-MM-DD)    | `2025-06-22`                                 |
-| `event_type`     | Type of change             | `service_created`                            |
-| `company`        | Company name               | `Tesla`                                      |
-| `city`           | City or region             | `Austin`                                     |
-| `geometry_file`  | Boundary file if available | `tesla-austin-june-22-2025-boundary.geojson` |
-| `vehicles`       | Vehicle types              | `Tesla Model Y`                              |
-| `platform`       | Booking app                | `Robotaxi`                                   |
-| `fares`          | Charges fares?             | `Yes` / `No`                                 |
-| `direct_booking` | Can book AV directly?      | `Yes` / `No`                                 |
-| `supervision`    | Supervision level          | `Autonomous` / `Safety Driver`               |
-| `access`         | Access policy              | `Public` / `Waitlist`                        |
-| `fleet_partner`  | Fleet partnerships         | `Moove`                                      |
-| `source_url`     | Source link                | `https://...`                                |
-| `notes`          | Additional context         | `Initial service launch`                     |
+| Column           | Description                | Example                                      | Required?     |
+| ---------------- | -------------------------- | -------------------------------------------- | ------------- |
+| `date`           | Event date (YYYY-MM-DD)    | `2025-06-22`                                 | Always        |
+| `event_type`     | Type of change             | `service_created`                            | Always        |
+| `company`        | Company name               | `Tesla`                                      | Always        |
+| `city`           | City or region             | `Austin`                                     | Always        |
+| `geometry_file`  | Boundary file if available | `tesla-austin-june-22-2025-boundary.geojson` | If applicable |
+| `vehicles`       | Vehicle types              | `Tesla Model Y`                              | If applicable |
+| `platform`       | Booking app                | `Robotaxi`                                   | If applicable |
+| `fares`          | Charges fares?             | `Yes` / `No`                                 | If applicable |
+| `direct_booking` | Can book AV directly?      | `Yes` / `No`                                 | If applicable |
+| `supervision`    | Supervision level          | `Autonomous` / `Safety Driver`               | If applicable |
+| `access`         | Access policy              | `Public` / `Waitlist`                        | If applicable |
+| `fleet_partner`  | Fleet partnerships         | `Moove`                                      | If applicable |
+| `source_url`     | Source link                | `https://...`                                | Preferred     |
+| `notes`          | Additional context         | `Initial service launch`                     | Preferred     |
 
 ## Adding a new service
 
@@ -39,7 +39,7 @@ Required: `date`, `event_type`, `company`, `city`, `vehicles`, `platform`, `fare
 
 ## Updating a service
 
-For updates, fill only the date, event type, company, city, the changed field, and source URL.
+For updates, **always include** `company` and `city` to identify the service. Fill the changed field with the **complete new state** (not just what was added/removed).
 
 ### Service area expansion
 
@@ -47,11 +47,21 @@ For updates, fill only the date, event type, company, city, the changed field, a
 2025-07-14,geometry_updated,Tesla,Austin,tesla-austin-july-14-2025-boundary.geojson,,,,,,,,https://www.businessinsider.com/tesla-new-robotaxi-geofence-austin-shape-elon-musk-bigger-waymo-2025-7,Service area boundary update
 ```
 
-### Fleet update
+### Fleet update (complete new state)
 
 ```csv
-2020-10-08,vehicle_types_updated,Waymo,Phoenix,,Chrysler Pacifica Hybrid,,,,,,,https://techcrunch.com/2019/06/17/waymos-self-driving-jaguar-i-pace-vehicles-are-now-testing-on-public-roads/,Vehicle fleet expansion - adding Jaguar I-Pace
+2020-10-08,vehicle_types_updated,Waymo,Phoenix,,Jaguar I-Pace;Chrysler Pacifica Hybrid,,,,,,,https://techcrunch.com/2019/06/17/waymos-self-driving-jaguar-i-pace-vehicles-are-now-testing-on-public-roads/,Vehicle fleet expansion
 ```
+
+Note: Multiple vehicles separated by `;` (semicolon). Shows complete current fleet, not just what changed.
+
+### Platform update (complete new state)
+
+```csv
+2023-10-26,platform_updated,Waymo,Phoenix,,,Waymo;Uber,,,,,,https://waymo.com/blog/2023/10/the-waymo-driver-now-available-on-uber-in-phoenix,Added Uber platform
+```
+
+Note: Multiple platforms separated by `;` (semicolon). This allows filtering by either platform in the app.
 
 ### Policy change
 
@@ -66,11 +76,11 @@ For updates, fill only the date, event type, company, city, the changed field, a
 - `service_created` - New service launch (fill all fields)
 - `service_ended` - Service discontinued
 
-**Service changes (fill only the changed field):**
+**Service changes (must include company + changed field with complete new state):**
 
 - `geometry_updated` - Service area changes
-- `vehicle_types_updated` - Fleet changes
-- `platform_updated` - Booking platform changes
+- `vehicle_types_updated` - Fleet changes (show complete current fleet)
+- `platform_updated` - Booking platform changes (show all platforms)
 - `fares_policy_changed` - Fare policy changes
 - `access_policy_changed` - Access changes
 - `supervision_updated` - Supervision level changes
@@ -79,6 +89,8 @@ For updates, fill only the date, event type, company, city, the changed field, a
 ## Field values
 
 Add new values when documenting companies, vehicles, platforms, or policies not listed here.
+
+**Multi-value fields:** For `vehicles` and `platform` fields, separate multiple values with `;` (semicolon). Examples: `Waymo;Uber` or `Jaguar I-Pace;Chrysler Pacifica Hybrid`. Semicolons preserve CSV compatibility while allowing the app to filter by individual values.
 
 **Companies:** Waymo, Tesla, Zoox, May Mobility, Cruise
 
@@ -120,21 +132,27 @@ If adding service area boundaries:
 
 ## Validation
 
-Before submitting:
+Run tests before submitting:
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+Or use the wrapper script:
 
 ```bash
 python3 scripts/validate.py
 ```
 
-Checks CSV structure, event sourcing rules, GeoJSON validity, and data consistency.
+Pull requests run tests automatically via GitHub Actions.
 
 ## Submission
 
-1. Fork this repository
-2. Create a feature branch (`feature/add-cruise-miami`)
-3. Make your changes
-4. Run validation
-5. Submit a pull request
+1. Fork and create a feature branch
+2. Make changes
+3. Run tests (`pytest tests/ -v`)
+4. Push and create pull request
 
 ## Questions?
 
