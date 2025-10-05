@@ -18,6 +18,14 @@ jobs:
       - name: Checkout av-map-data
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
       - name: Validate Data
         run: python3 scripts/validate.py
 
