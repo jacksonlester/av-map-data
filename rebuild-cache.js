@@ -13,9 +13,26 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { config } from 'dotenv'
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://vbqijqcveavjycsfoszy.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicWlqcWN2ZWF2anljc2Zvc3p5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODEzMTYxNSwiZXhwIjoyMDczNzA3NjE1fQ.legscbAoD66eAJNAhTFsO2ZzvUoZeGcarevOQzrj9Us'
+// Load .env file for local development (GitHub Actions sets env vars directly)
+if (!process.env.GITHUB_ACTIONS) {
+  config()
+}
+
+// Require environment variables - no hardcoded secrets!
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Missing required environment variables!')
+  console.error('Please set SUPABASE_URL and SUPABASE_SERVICE_KEY')
+  console.error('\nFor local development, create a .env file with:')
+  console.error('SUPABASE_URL=your_supabase_url')
+  console.error('SUPABASE_SERVICE_KEY=your_service_key')
+  console.error('\nSee .env.example for template')
+  process.exit(1)
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
