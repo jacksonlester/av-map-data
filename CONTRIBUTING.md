@@ -2,6 +2,17 @@
 
 This dataset tracks autonomous vehicle deployments and powers [avmap.io](https://avmap.io). While currently focused on US services, we accept data from anywhere.
 
+## ⚠️ Important: Submit PRs to `staging` branch
+
+**All pull requests should target the `staging` branch, not `main`.** This allows us to test your changes on the staging site before promoting to production.
+
+1. Fork this repository
+2. Create a feature branch from `staging`
+3. Make your changes
+4. Submit a PR to the `staging` branch
+5. Your changes will be tested on the staging environment
+6. Once verified, they'll be promoted to production
+
 ## Event sourcing basics
 
 Each row in `events.csv` represents one change to a service. Service creation events include all attributes. **Update events must include the complete new state for the field being updated** (not deltas) and always include the `company` field to identify which service is being updated.
