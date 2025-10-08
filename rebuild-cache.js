@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Production cache rebuild script
+ * Cache rebuild script - supports both staging and production environments
  *
  * This script:
  * 1. Fetches all data from Supabase database
@@ -9,11 +9,16 @@
  * 3. Processes service areas using timeline logic
  * 4. Uploads combined JSON blob to storage
  *
+ * Environment Detection:
+ * - STAGING=true env var → Uses staging tables/buckets
+ * - Default → Uses production tables/buckets
+ *
  * Run this whenever you update av_events or service_area_geometries data
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
+import { execSync } from 'child_process'
 
 // Load .env file for local development (GitHub Actions sets env vars directly)
 if (!process.env.GITHUB_ACTIONS) {
@@ -34,6 +39,26 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1)
 }
 
+// Detect environment: staging or production
+const isStaging = process.env.STAGING === 'true'
+const environment = isStaging ? 'staging' : 'production'
+
+// Environment-specific configuration
+const config_env = {
+  eventsTable: isStaging ? 'av_events_staging' : 'av_events',
+  geometriesTable: isStaging ? 'service_area_geometries_staging' : 'service_area_geometries',
+  dataCacheBucket: isStaging ? 'staging-data-cache' : 'data-cache',
+  geometriesBucket: isStaging ? 'staging-service-area-boundaries' : 'service-area-boundaries'
+}
+
+console.log(`🌍 Environment: ${environment.toUpperCase()}`)
+console.log(`📋 Configuration:`)
+console.log(`   Events table: ${config_env.eventsTable}`)
+console.log(`   Geometries table: ${config_env.geometriesTable}`)
+console.log(`   Data cache bucket: ${config_env.dataCacheBucket}`)
+console.log(`   Geometries bucket: ${config_env.geometriesBucket}`)
+console.log('')
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 async function rebuildCache() {
@@ -45,13 +70,13 @@ async function rebuildCache() {
     console.log('📡 Fetching database data...')
     const [eventsResult, geometriesResult] = await Promise.all([
       supabase
-        .from('av_events')
+        .from(config_env.eventsTable)
         .select('*')
         .eq('aggregate_type', 'service_area')
         .order('event_date', { ascending: true }),
 
       supabase
-        .from('service_area_geometries')
+        .from(config_env.geometriesTable)
         .select('*')
         .order('created_at', { ascending: false })
     ])
@@ -149,35 +174,41 @@ async function rebuildCache() {
     const jsonData = JSON.stringify(cacheData)
     const sizeMB = (jsonData.length / 1024 / 1024).toFixed(2)
 
-    // Use timestamped filename to avoid caching issues
-    const timestamp = Date.now();
-    const filename = `all-data-${timestamp}.json`;
+    // Use timestamped filename to avoid caching issues (production only)
+    if (!isStaging) {
+      const timestamp = Date.now();
+      const filename = `all-data-${timestamp}.json`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('data-cache')
-      .upload(filename, jsonData, {
-        contentType: 'application/json',
-        cacheControl: 'max-age=0, no-cache'
-      })
+      const { error: uploadError } = await supabase.storage
+        .from(config_env.dataCacheBucket)
+        .upload(filename, jsonData, {
+          contentType: 'application/json',
+          cacheControl: 'max-age=0, no-cache'
+        })
 
-    if (uploadError) throw uploadError
+      if (uploadError) throw uploadError
+      console.log(`   Backup saved: ${filename}`)
+    }
 
-    // Also upload as all-data.json for backwards compatibility
-    await supabase.storage.from('data-cache').remove(['all-data.json'])
+    // Upload as all-data.json
+    await supabase.storage.from(config_env.dataCacheBucket).remove(['all-data.json'])
     const { error: mainUploadError } = await supabase.storage
-      .from('data-cache')
+      .from(config_env.dataCacheBucket)
       .upload('all-data.json', jsonData, {
         contentType: 'application/json',
         cacheControl: 'max-age=0, no-cache'
       })
 
-    if (uploadError) throw uploadError
+    if (mainUploadError) throw mainUploadError
 
     const totalTime = Date.now() - startTime
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${config_env.dataCacheBucket}/all-data.json`
+
     console.log(`🎉 Cache rebuild complete!`)
+    console.log(`   Environment: ${environment}`)
     console.log(`   Size: ${sizeMB}MB`)
     console.log(`   Time: ${totalTime}ms`)
-    console.log(`   URL: https://vbqijqcveavjycsfoszy.supabase.co/storage/v1/object/public/data-cache/all-data.json`)
+    console.log(`   URL: ${publicUrl}`)
 
     if (failed.length > 0) {
       console.log(`⚠️ ${failed.length} geometries failed to load`)
