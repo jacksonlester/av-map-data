@@ -27,13 +27,13 @@ Each row in `events.csv` represents one change to a service. Service creation ev
 | `event_type`     | Type of change             | `service_created`                            | Always        |
 | `company`        | Company name               | `Tesla`                                      | Always        |
 | `city`           | City or region             | `Austin`                                     | Always        |
-| `geometry_file`  | Boundary file if available | `tesla-austin-june-22-2025-boundary.geojson` | If applicable |
+| `geometry`       | Boundary file or Point coordinates | `tesla-austin-june-22-2025-boundary.geojson` or `{"type":"Point","coordinates":[-97.74,30.27]}` | If applicable |
 | `vehicles`       | Vehicle types              | `Tesla Model Y`                              | If applicable |
 | `platform`       | Booking app                | `Robotaxi`                                   | If applicable |
 | `fares`          | Charges fares?             | `Yes` / `No`                                 | If applicable |
 | `direct_booking` | Can book AV directly?      | `Yes` / `No`                                 | If applicable |
 | `supervision`    | Supervision level          | `Autonomous` / `Safety Driver`               | If applicable |
-| `access`         | Access policy              | `Public` / `Waitlist`                        | If applicable |
+| `access`         | Access policy              | `Public` / `Waitlist` / `Announced`          | If applicable |
 | `fleet_partner`  | Fleet partnerships         | `Moove`                                      | If applicable |
 | `source_url`     | Source link                | `https://...`                                | Preferred     |
 | `notes`          | Additional context         | `Initial service launch`                     | Preferred     |
@@ -115,7 +115,7 @@ Add new values when documenting companies, vehicles, platforms, or policies not 
 
 **Supervision:** `Autonomous`, `Safety Driver`, `Safety Attendant`
 
-**Access:** `Public`, `Waitlist`
+**Access:** `Public`, `Waitlist`, `Announced`
 
 ## Geometry files
 

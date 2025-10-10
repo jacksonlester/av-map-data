@@ -1,4 +1,4 @@
-date,event_type,company,city,geometry_file,vehicles,platform,fares,direct_booking,supervision,access,fleet_partner,source_url,notes
+date,event_type,company,city,geometry,vehicles,platform,fares,direct_booking,supervision,access,fleet_partner,source_url,notes
 2017-04-25,service_created,Waymo,Phoenix,waymo-phoenix-april-25-2017-boundary.geojson,Chrysler Pacifica Hybrid,Waymo,No,Yes,Safety Driver,Waitlist,,https://www.technologyreview.com/2017/04/25/152152/waymo-has-invited-the-public-to-hop-into-its-self-driving-cars/,Waymo Phoenix service
 2017-11-07,supervision_updated,Waymo,Phoenix,,,,,,Autonomous,,,https://waymo.com/blog/2017/11/waymos-fully-self-driving-vehicles-are-here,Supervision level update
 2020-10-08,fares_policy_changed,Waymo,Phoenix,,,,Yes,,,,,https://waymo.com/blog/2020/10/waymo-is-opening-its-fully-driverless-service-in-phoenix,Fares policy update

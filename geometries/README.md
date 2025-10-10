@@ -37,7 +37,8 @@ All GeoJSON files should be standard FeatureCollections:
 
 - **No metadata in properties**: Service metadata (company, dates, etc.) is stored in the events.csv file, not in the GeoJSON properties
 - **Simple geometry only**: GeoJSON files contain only the boundary geometry
-- **Reference from CSV**: Each geometry file is referenced by name in the `geometry_file` field in events.csv
+- **Reference from CSV**: Each geometry file is referenced by name in the `geometry` field in events.csv
+- **Point coordinates**: For announced services without defined boundaries, use inline Point coordinates in the `geometry` field instead of a file reference
 - **Real data from avmap.io**: This repository will contain the actual service area boundaries that power avmap.io
 
 ## Service Area Files

@@ -39,7 +39,7 @@ def test_csv_file_exists(csv_file):
 def test_csv_headers(csv_file):
     """Test that CSV has correct headers."""
     expected_headers = [
-        'date', 'event_type', 'company', 'city', 'geometry_file',
+        'date', 'event_type', 'company', 'city', 'geometry',
         'vehicles', 'platform', 'fares', 'direct_booking', 'supervision',
         'access', 'fleet_partner', 'source_url', 'notes'
     ]
@@ -160,8 +160,8 @@ def test_update_events(csv_file):
                 if event_type == 'geometry_updated':
                     if len(filled_fields) > 0:
                         errors.append(f"Row {row_num}: geometry_updated event should not have service attribute fields filled")
-                    if not row.get('geometry_file', '').strip():
-                        errors.append(f"Row {row_num}: geometry_updated event must have geometry_file")
+                    if not row.get('geometry', '').strip():
+                        errors.append(f"Row {row_num}: geometry_updated event must have geometry")
                 else:
                     if len(filled_fields) == 0:
                         errors.append(f"Row {row_num}: {event_type} event should have at least one service attribute field filled")
@@ -174,21 +174,33 @@ def test_update_events(csv_file):
 
 
 def test_geometry_file_naming(csv_file):
-    """Test that geometry files follow naming conventions."""
+    """Test that geometry files follow naming conventions or are valid GeoJSON."""
     errors = []
 
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
 
         for row_num, row in enumerate(reader, start=2):
-            geometry_file = row.get('geometry_file', '')
-            if geometry_file:
-                if not geometry_file.endswith('.geojson'):
-                    errors.append(f"Row {row_num}: Geometry file should end with .geojson: {geometry_file}")
+            geometry = row.get('geometry', '')
+            if geometry:
+                # Check if it's a GeoJSON object (starts with '{')
+                if geometry.startswith('{'):
+                    try:
+                        geom_obj = json.loads(geometry)
+                        if geom_obj.get('type') != 'Point':
+                            errors.append(f"Row {row_num}: Inline geometry must be a Point, got: {geom_obj.get('type')}")
+                        if 'coordinates' not in geom_obj:
+                            errors.append(f"Row {row_num}: Inline geometry missing coordinates")
+                    except json.JSONDecodeError:
+                        errors.append(f"Row {row_num}: Invalid JSON in geometry field: {geometry}")
+                else:
+                    # It's a filename
+                    if not geometry.endswith('.geojson'):
+                        errors.append(f"Row {row_num}: Geometry file should end with .geojson: {geometry}")
 
-                expected_pattern = r'^[a-z0-9]+-[a-z0-9-]+-[a-z]+-\d{1,2}-\d{4}-boundary\.geojson$'
-                if not re.match(expected_pattern, geometry_file):
-                    errors.append(f"Row {row_num}: Geometry file doesn't follow naming convention: {geometry_file}")
+                    expected_pattern = r'^[a-z0-9]+-[a-z0-9-]+-[a-z]+-\d{1,2}-\d{4}-boundary\.geojson$'
+                    if not re.match(expected_pattern, geometry):
+                        errors.append(f"Row {row_num}: Geometry file doesn't follow naming convention: {geometry}")
 
     assert len(errors) == 0, "\n".join(errors)
 
@@ -215,7 +227,7 @@ def test_service_attribute_values(csv_file):
                 errors.append(f"Row {row_num}: supervision must be one of {valid_supervision}, got: {supervision}")
 
             access = row.get('access', '').strip()
-            valid_access = ['Public', 'Waitlist', 'Employees Only', 'Invite Only']
+            valid_access = ['Public', 'Waitlist', 'Announced', 'Employees Only', 'Invite Only']
             if access and access not in valid_access:
                 errors.append(f"Row {row_num}: access must be one of {valid_access}, got: {access}")
 
@@ -300,11 +312,12 @@ def test_geometry_file_references(csv_file, geometries_dir):
         reader = csv.DictReader(f)
 
         for row_num, row in enumerate(reader, start=2):
-            geometry_file = row.get('geometry_file', '').strip()
-            if geometry_file:
-                geometry_path = geometries_dir / geometry_file
+            geometry = row.get('geometry', '').strip()
+            if geometry and not geometry.startswith('{'):
+                # It's a filename reference, not inline GeoJSON
+                geometry_path = geometries_dir / geometry
                 if not geometry_path.exists():
-                    errors.append(f"Row {row_num}: Referenced geometry file does not exist: {geometry_file}")
+                    errors.append(f"Row {row_num}: Referenced geometry file does not exist: {geometry}")
 
     assert len(errors) == 0, "\n".join(errors)
 

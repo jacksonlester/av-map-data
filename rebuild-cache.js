@@ -237,6 +237,7 @@ function buildServiceAreasFromEvents(events) {
     const currentState = currentServiceStates.get(serviceId) || { isActive: false }
 
     if (event.event_type === 'service_created') {
+      const geometryValue = event.event_data.geometry_name
       const newState = {
         ...event.event_data,
         id: `${serviceId}-${event.event_date}`,
@@ -244,7 +245,19 @@ function buildServiceAreasFromEvents(events) {
         effectiveDate: eventDate,
         lastUpdated: eventDate,
         isActive: true,
-        geojsonPath: event.event_data.geometry_name
+        geojsonPath: geometryValue
+      }
+
+      // If geometry is inline Point coordinates, parse and add to state
+      if (geometryValue && geometryValue.startsWith('{')) {
+        try {
+          const geomObj = JSON.parse(geometryValue)
+          if (geomObj.type === 'Point' && geomObj.coordinates) {
+            newState.coordinates = geomObj.coordinates
+          }
+        } catch (e) {
+          console.warn(`Failed to parse inline geometry for ${serviceId}:`, e)
+        }
       }
 
       currentServiceStates.set(serviceId, newState)
@@ -268,17 +281,44 @@ function buildServiceAreasFromEvents(events) {
 
         if (lastState && lastStateDate === currentEventDate) {
           // Same date - update existing state in place
-          lastState.geojsonPath = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState.geojsonPath
+          const geometryValue = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState.geojsonPath
+          lastState.geojsonPath = geometryValue
           lastState.lastUpdated = eventDate
+
+          // Handle inline Point coordinates
+          if (geometryValue && geometryValue.startsWith('{')) {
+            try {
+              const geomObj = JSON.parse(geometryValue)
+              if (geomObj.type === 'Point' && geomObj.coordinates) {
+                lastState.coordinates = geomObj.coordinates
+              }
+            } catch (e) {
+              console.warn(`Failed to parse inline geometry for ${serviceId}:`, e)
+            }
+          }
+
           currentServiceStates.set(serviceId, lastState)
         } else {
           // Different date - create new state
+          const geometryValue = event.event_data.geometry_name || event.event_data.new_geometry_name || currentState.geojsonPath
           const newState = {
             ...currentState,
             id: `${serviceId}-${event.event_date}`,
             effectiveDate: eventDate,
             lastUpdated: eventDate,
-            geojsonPath: event.event_data.geometry_name || event.event_data.new_geometry_name || currentState.geojsonPath
+            geojsonPath: geometryValue
+          }
+
+          // Handle inline Point coordinates
+          if (geometryValue && geometryValue.startsWith('{')) {
+            try {
+              const geomObj = JSON.parse(geometryValue)
+              if (geomObj.type === 'Point' && geomObj.coordinates) {
+                newState.coordinates = geomObj.coordinates
+              }
+            } catch (e) {
+              console.warn(`Failed to parse inline geometry for ${serviceId}:`, e)
+            }
           }
 
           if (lastState) {
