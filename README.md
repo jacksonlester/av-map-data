@@ -30,10 +30,10 @@ Load the GeoJSON files into any mapping tool. Parse the CSV for historical analy
 We welcome contributions! To submit changes:
 
 1. Fork this repository
-2. Create a feature branch from `staging`
+2. Create a feature branch from `main`
 3. Make your changes to `events.csv` and/or add geometry files
 4. Run validation: `python3 scripts/validate.py`
-5. Submit a pull request to the `staging` branch
+5. Submit a pull request to the `staging` branch (changes are tested there before production)
 6. Wait for review - a maintainer will test your changes and merge if approved
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed format specs and examples.

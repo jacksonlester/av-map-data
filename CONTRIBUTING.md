@@ -7,7 +7,7 @@ This dataset tracks autonomous vehicle deployments and powers [avmap.io](https:/
 **All pull requests should target the `staging` branch, not `main`.** This allows us to test your changes on the staging site before promoting to production.
 
 1. Fork this repository
-2. Create a feature branch from `staging`
+2. Create a feature branch from `main` (the stable production branch)
 3. Make your changes
 4. Submit a PR to the `staging` branch
 5. Your changes will be tested on the staging environment
@@ -160,10 +160,10 @@ Pull requests run tests automatically via GitHub Actions.
 
 ## Submission
 
-1. Fork and create a feature branch
-2. Make changes
+1. Fork this repository and create a feature branch from `main`
+2. Make your changes
 3. Run tests (`pytest tests/ -v`)
-4. Push and create pull request
+4. Push your branch and create a pull request to the `staging` branch
 
 ## Questions?
 
