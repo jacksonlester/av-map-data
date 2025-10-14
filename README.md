@@ -27,35 +27,38 @@ Load the GeoJSON files into any mapping tool. Parse the CSV for historical analy
 
 ## Contributing
 
-**Important: Submit all PRs to the `staging` branch, not `main`.**
+We welcome contributions! To submit changes:
 
 1. Fork this repository
 2. Create a feature branch from `staging`
-3. Add events to `events.csv` or update geometries
-4. Run `python3 scripts/validate.py` to verify your changes
-5. Submit a PR to the `staging` branch
-6. Your changes will be tested on the staging site before being promoted to production
+3. Make your changes to `events.csv` and/or add geometry files
+4. Run validation: `python3 scripts/validate.py`
+5. Submit a pull request to the `staging` branch
+6. Wait for review - a maintainer will test your changes and merge if approved
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the data format spec and examples.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed format specs and examples.
 
-Most useful contributions: new service launches, boundary updates, fleet size changes, policy announcements.
+**Helpful contributions:**
+- New service launches or expansions
+- Service area boundary updates
+- Fleet changes, policy updates
+- Corrections to existing data
 
-## Staging & Production Workflow
+## Review Process
+
+After you submit a pull request:
+1. Automated tests will run to validate your data format
+2. A maintainer will review and test your changes
+3. If approved, your PR will be merged to `staging`
+4. Changes will be promoted to production after internal testing
+
+## For Maintainers Only
+
+The following commands are for repository maintainers managing the staging → production workflow.
 
 This repository uses a staging environment to test data updates before they go live:
-
-- **`staging` branch** → Deploys to staging environment (test your changes here)
+- **`staging` branch** → Deploys to staging environment for testing
 - **`main` branch** → Deploys to production (avmap.io)
-
-### Testing Your Changes
-
-After submitting a PR to `staging`:
-1. Wait for the GitHub Action to rebuild the staging cache
-2. Check the staging site to verify your data looks correct
-3. Once approved, your PR will be merged to `staging`
-4. Later, staging will be promoted to `main` (production)
-
-## For Maintainers
 
 ### Promoting Staging to Production
 
