@@ -11,8 +11,8 @@ This uses event sourcing: create events capture full service details, updates on
 
 ## Current coverage
 
-- 2017-2025 timeline
-- Waymo, Tesla, May Mobility, Zoox, Cruise, and others
+- 2017 to current timeline
+- Waymo, Tesla, May Mobility, Zoox, and others
 - Major US cities with active or historical deployments
 
 ## Quick start
