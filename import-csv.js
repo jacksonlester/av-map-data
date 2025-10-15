@@ -51,7 +51,7 @@ const FIELD_MAPPING = {
   'platform': 'platform',
   'fares': 'fares',
   'direct_booking': 'direct_booking',
-  'flexibility': 'flexibility',
+  'service_model': 'service_model',
   'supervision': 'supervision',
   'access': 'access',
   'fleet_partner': 'fleet_partner',
@@ -85,7 +85,7 @@ function csvRowToEvent(row) {
     'platform_updated',
     'vehicle_types_updated',
     'fleet_partner_changed',
-    'flexibility_updated',
+    'service_model_updated',
     'geometry_updated'
   ].includes(row.event_type)
 
@@ -121,7 +121,7 @@ function csvRowToEvent(row) {
           (row.event_type === 'platform_updated' && csvKey === 'platform') ||
           (row.event_type === 'vehicle_types_updated' && csvKey === 'vehicles') ||
           (row.event_type === 'fleet_partner_changed' && csvKey === 'fleet_partner') ||
-          (row.event_type === 'flexibility_updated' && csvKey === 'flexibility')
+          (row.event_type === 'service_model_updated' && csvKey === 'service_model')
 
         if (!isFieldBeingUpdated) {
           eventData[dbKey] = value
@@ -143,8 +143,8 @@ function csvRowToEvent(row) {
     eventData.new_vehicle_types = row.vehicles
   } else if (row.event_type === 'fleet_partner_changed' && row.fleet_partner) {
     eventData.new_fleet_partner = row.fleet_partner
-  } else if (row.event_type === 'flexibility_updated' && row.flexibility) {
-    eventData.new_flexibility = row.flexibility
+  } else if (row.event_type === 'service_model_updated' && row.service_model) {
+    eventData.new_service_model = row.service_model
   }
 
   return {
