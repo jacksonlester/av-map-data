@@ -258,6 +258,10 @@ function transformEventData(eventData) {
     transformed.geojsonPath = transformed.geometry_name
     delete transformed.geometry_name
   }
+  if (transformed.service_model !== undefined) {
+    transformed.serviceModel = transformed.service_model
+    delete transformed.service_model
+  }
 
   return transformed
 }
