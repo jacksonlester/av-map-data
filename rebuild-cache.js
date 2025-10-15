@@ -290,9 +290,9 @@ function buildServiceAreasFromEvents(events) {
         }
       }
 
-    } else if (['service_updated', 'fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'fleet_partner_changed'].includes(event.event_type)) {
+    } else if (['service_updated', 'fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'flexibility_updated', 'fleet_partner_changed'].includes(event.event_type)) {
       if (currentState.isActive) {
-        const shouldCreateNewState = ['fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'fleet_partner_changed'].includes(event.event_type)
+        const shouldCreateNewState = ['fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'flexibility_updated', 'fleet_partner_changed'].includes(event.event_type)
 
         if (shouldCreateNewState) {
           // Check if last state has same effectiveDate - if so, update in place instead of creating new state
@@ -312,6 +312,8 @@ function buildServiceAreasFromEvents(events) {
               lastState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
               lastState.supervision = event.event_data.new_supervision
+            } else if (event.event_type === 'flexibility_updated') {
+              lastState.flexibility = event.event_data.new_flexibility
             } else if (event.event_type === 'fleet_partner_changed') {
               lastState.fleet_partner = event.event_data.new_fleet_partner
             }
@@ -337,6 +339,8 @@ function buildServiceAreasFromEvents(events) {
               newState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
               newState.supervision = event.event_data.new_supervision
+            } else if (event.event_type === 'flexibility_updated') {
+              newState.flexibility = event.event_data.new_flexibility
             } else if (event.event_type === 'fleet_partner_changed') {
               newState.fleet_partner = event.event_data.new_fleet_partner
             }
