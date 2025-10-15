@@ -77,7 +77,21 @@ function csvRowToEvent(row) {
     company: company  // company goes in event_data too
   }
 
-  // Map all CSV fields to event_data, excluding date/event_type which go in top level
+  // Determine which fields to include in event_data based on event type
+  const isUpdateEvent = [
+    'fares_policy_changed',
+    'access_policy_changed',
+    'supervision_updated',
+    'platform_updated',
+    'vehicle_types_updated',
+    'fleet_partner_changed',
+    'flexibility_updated',
+    'geometry_updated'
+  ].includes(row.event_type)
+
+  const isServiceCreated = row.event_type === 'service_created'
+
+  // Map all CSV fields to event_data
   Object.keys(row).forEach(csvKey => {
     const value = row[csvKey]?.trim()
     if (!value) return // Skip empty values
@@ -87,26 +101,49 @@ function csvRowToEvent(row) {
       // Convert geometry_file to geometry_name format (without .geojson extension)
       if (csvKey === 'geometry_file') {
         eventData.geometry_name = value.replace(/\.geojson$/, '')
-      } else {
+      }
+      // For service_created, include all fields
+      // For update events, skip the field being updated (will be added as new_* below)
+      // Always include company, city, notes, and source_url
+      else if (isServiceCreated ||
+               csvKey === 'company' ||
+               csvKey === 'city' ||
+               csvKey === 'notes' ||
+               csvKey === 'source_url') {
         eventData[dbKey] = value
+      }
+      // For update events, only include fields that aren't being updated
+      else if (isUpdateEvent) {
+        const isFieldBeingUpdated =
+          (row.event_type === 'fares_policy_changed' && csvKey === 'fares') ||
+          (row.event_type === 'access_policy_changed' && csvKey === 'access') ||
+          (row.event_type === 'supervision_updated' && csvKey === 'supervision') ||
+          (row.event_type === 'platform_updated' && csvKey === 'platform') ||
+          (row.event_type === 'vehicle_types_updated' && csvKey === 'vehicles') ||
+          (row.event_type === 'fleet_partner_changed' && csvKey === 'fleet_partner') ||
+          (row.event_type === 'flexibility_updated' && csvKey === 'flexibility')
+
+        if (!isFieldBeingUpdated) {
+          eventData[dbKey] = value
+        }
       }
     }
   })
 
-  // Parse event type specific data
-  if (row.event_type === 'fares_policy_changed') {
+  // Add the new_* fields for update events
+  if (row.event_type === 'fares_policy_changed' && row.fares) {
     eventData.new_fares = row.fares
-  } else if (row.event_type === 'access_policy_changed') {
+  } else if (row.event_type === 'access_policy_changed' && row.access) {
     eventData.new_access = row.access
-  } else if (row.event_type === 'supervision_updated') {
+  } else if (row.event_type === 'supervision_updated' && row.supervision) {
     eventData.new_supervision = row.supervision
-  } else if (row.event_type === 'platform_updated') {
+  } else if (row.event_type === 'platform_updated' && row.platform) {
     eventData.new_platform = row.platform
-  } else if (row.event_type === 'vehicle_types_updated') {
+  } else if (row.event_type === 'vehicle_types_updated' && row.vehicles) {
     eventData.new_vehicle_types = row.vehicles
-  } else if (row.event_type === 'fleet_partner_changed') {
+  } else if (row.event_type === 'fleet_partner_changed' && row.fleet_partner) {
     eventData.new_fleet_partner = row.fleet_partner
-  } else if (row.event_type === 'flexibility_updated') {
+  } else if (row.event_type === 'flexibility_updated' && row.flexibility) {
     eventData.new_flexibility = row.flexibility
   }
 
