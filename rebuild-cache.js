@@ -19,6 +19,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 import { execSync } from 'child_process'
+import area from '@turf/area'
 
 // Load .env file for local development (GitHub Actions sets env vars directly)
 if (!process.env.GITHUB_ACTIONS) {
@@ -141,9 +142,23 @@ async function rebuildCache() {
 
     console.log(`✅ Geometries: ${successful.length} loaded, ${failed.length} failed`)
 
+    // Create geometry lookup map with calculated areas
+    const geometryMap = new Map()
+    geometriesWithData.forEach(geo => {
+      if (geo.geojson_data) {
+        // Calculate area in square meters and convert to square miles
+        const areaSquareMeters = area(geo.geojson_data)
+        const areaSquareMiles = areaSquareMeters / 2589988.11 // 1 sq mi = 2,589,988.11 sq m
+        geometryMap.set(geo.geometry_name, {
+          geojson: geo.geojson_data,
+          area_square_miles: Math.round(areaSquareMiles * 100) / 100 // Round to 2 decimals
+        })
+      }
+    })
+
     // STEP 3: Process service areas
     console.log('⚙️ Processing service areas...')
-    const serviceAreas = buildServiceAreasFromEvents(events)
+    const serviceAreas = buildServiceAreasFromEvents(events, geometryMap)
 
     // STEP 4: Create final data structure
     const cacheData = {
@@ -248,7 +263,7 @@ function transformEventData(eventData) {
 }
 
 // Service area processing logic
-function buildServiceAreasFromEvents(events) {
+function buildServiceAreasFromEvents(events, geometryMap) {
   const currentServiceStates = new Map()
   const allStates = []
 
@@ -263,6 +278,12 @@ function buildServiceAreasFromEvents(events) {
 
     if (event.event_type === 'service_created') {
       const transformedData = transformEventData(event.event_data)
+      const geojsonPath = transformedData.geojsonPath || event.event_data.geometry_name
+
+      // Add calculated area from geometry
+      const geometryData = geometryMap.get(geojsonPath)
+      const areaSquareMiles = geometryData?.area_square_miles || null
+
       const newState = {
         ...transformedData,
         id: `${serviceId}-${event.event_date}`,
@@ -270,7 +291,8 @@ function buildServiceAreasFromEvents(events) {
         effectiveDate: eventDate,
         lastUpdated: eventDate,
         isActive: true,
-        geojsonPath: transformedData.geojsonPath || event.event_data.geometry_name
+        geojsonPath: geojsonPath,
+        area_square_miles: areaSquareMiles
       }
 
       currentServiceStates.set(serviceId, newState)
@@ -292,9 +314,14 @@ function buildServiceAreasFromEvents(events) {
         const lastStateDate = lastState ? new Date(lastState.effectiveDate).getTime() : 0
         const currentEventDate = eventDate.getTime()
 
+        const newGeojsonPath = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState?.geojsonPath
+        const geometryData = geometryMap.get(newGeojsonPath)
+        const areaSquareMiles = geometryData?.area_square_miles || null
+
         if (lastState && lastStateDate === currentEventDate) {
           // Same date - update existing state in place
-          lastState.geojsonPath = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState.geojsonPath
+          lastState.geojsonPath = newGeojsonPath
+          lastState.area_square_miles = areaSquareMiles
           lastState.lastUpdated = eventDate
           currentServiceStates.set(serviceId, lastState)
         } else {
@@ -304,7 +331,8 @@ function buildServiceAreasFromEvents(events) {
             id: `${serviceId}-${event.event_date}`,
             effectiveDate: eventDate,
             lastUpdated: eventDate,
-            geojsonPath: event.event_data.geometry_name || event.event_data.new_geometry_name || currentState.geojsonPath
+            geojsonPath: newGeojsonPath,
+            area_square_miles: areaSquareMiles
           }
 
           if (lastState) {
