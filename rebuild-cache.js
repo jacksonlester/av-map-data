@@ -222,6 +222,31 @@ async function rebuildCache() {
   }
 }
 
+// Helper function to transform snake_case to camelCase for frontend compatibility
+function transformEventData(eventData) {
+  const transformed = { ...eventData }
+
+  // Transform snake_case fields to camelCase
+  if (transformed.direct_booking !== undefined) {
+    transformed.directBooking = transformed.direct_booking
+    delete transformed.direct_booking
+  }
+  if (transformed.vehicle_types !== undefined) {
+    transformed.vehicleTypes = transformed.vehicle_types
+    delete transformed.vehicle_types
+  }
+  if (transformed.fleet_partner !== undefined) {
+    transformed.fleetPartner = transformed.fleet_partner
+    delete transformed.fleet_partner
+  }
+  if (transformed.geometry_name !== undefined) {
+    transformed.geojsonPath = transformed.geometry_name
+    delete transformed.geometry_name
+  }
+
+  return transformed
+}
+
 // Service area processing logic
 function buildServiceAreasFromEvents(events) {
   const currentServiceStates = new Map()
@@ -237,14 +262,15 @@ function buildServiceAreasFromEvents(events) {
     const currentState = currentServiceStates.get(serviceId) || { isActive: false }
 
     if (event.event_type === 'service_created') {
+      const transformedData = transformEventData(event.event_data)
       const newState = {
-        ...event.event_data,
+        ...transformedData,
         id: `${serviceId}-${event.event_date}`,
         serviceId: serviceId,
         effectiveDate: eventDate,
         lastUpdated: eventDate,
         isActive: true,
-        geojsonPath: event.event_data.geometry_name
+        geojsonPath: transformedData.geojsonPath || event.event_data.geometry_name
       }
 
       currentServiceStates.set(serviceId, newState)
@@ -301,13 +327,13 @@ function buildServiceAreasFromEvents(events) {
           const currentEventDate = eventDate.getTime()
 
           if (lastState && lastStateDate === currentEventDate) {
-            // Same date - update existing state in place
+            // Same date - update existing state in place (using camelCase for frontend)
             if (event.event_type === 'fares_policy_changed') {
               lastState.fares = event.event_data.new_fares
             } else if (event.event_type === 'access_policy_changed') {
               lastState.access = event.event_data.new_access
             } else if (event.event_type === 'vehicle_types_updated') {
-              lastState.vehicleTypes = event.event_data.new_vehicle_types
+              lastState.vehicleTypes = event.event_data.new_vehicle_types || event.event_data.vehicle_types
             } else if (event.event_type === 'platform_updated') {
               lastState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
@@ -315,7 +341,7 @@ function buildServiceAreasFromEvents(events) {
             } else if (event.event_type === 'flexibility_updated') {
               lastState.flexibility = event.event_data.new_flexibility
             } else if (event.event_type === 'fleet_partner_changed') {
-              lastState.fleet_partner = event.event_data.new_fleet_partner
+              lastState.fleetPartner = event.event_data.new_fleet_partner || event.event_data.fleet_partner
             }
             lastState.lastUpdated = eventDate
             currentServiceStates.set(serviceId, lastState)
@@ -328,13 +354,13 @@ function buildServiceAreasFromEvents(events) {
               lastUpdated: eventDate
             }
 
-            // Apply field updates
+            // Apply field updates (using camelCase for frontend)
             if (event.event_type === 'fares_policy_changed') {
               newState.fares = event.event_data.new_fares
             } else if (event.event_type === 'access_policy_changed') {
               newState.access = event.event_data.new_access
             } else if (event.event_type === 'vehicle_types_updated') {
-              newState.vehicleTypes = event.event_data.new_vehicle_types
+              newState.vehicleTypes = event.event_data.new_vehicle_types || event.event_data.vehicle_types
             } else if (event.event_type === 'platform_updated') {
               newState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
@@ -342,7 +368,7 @@ function buildServiceAreasFromEvents(events) {
             } else if (event.event_type === 'flexibility_updated') {
               newState.flexibility = event.event_data.new_flexibility
             } else if (event.event_type === 'fleet_partner_changed') {
-              newState.fleet_partner = event.event_data.new_fleet_partner
+              newState.fleetPartner = event.event_data.new_fleet_partner || event.event_data.fleet_partner
             }
 
             if (lastState) {
