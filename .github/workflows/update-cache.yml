@@ -1,0 +1,107 @@
+name: Update Data Cache
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+    paths:
+      - 'events.csv'
+      - 'geometries/**'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to update'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  update-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Import CSV to database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node import-csv.js
+          else
+            node import-csv.js
+          fi
+
+      - name: Upload geometry files to storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node upload-geometries.js
+          else
+            node upload-geometries.js
+          fi
+
+      - name: Sync geometries table with storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node sync-geometries-table.js
+          else
+            node sync-geometries-table.js
+          fi
+
+      - name: Rebuild cache
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node rebuild-cache.js
+          else
+            node rebuild-cache.js
+          fi
+
+      - name: Summary
+        run: |
+          echo "✅ Cache updated successfully for ${{ steps.env.outputs.environment }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
