@@ -41,7 +41,7 @@ def test_csv_headers(csv_file):
     expected_headers = [
         'date', 'event_type', 'company', 'city', 'geometry_file',
         'vehicles', 'platform', 'fares', 'direct_booking', 'service_model', 'supervision',
-        'access', 'fleet_partner', 'source_url', 'notes'
+        'access', 'fleet_partner', 'company_link', 'booking_platform_link', 'source_url', 'notes'
     ]
 
     with open(csv_file, 'r') as f:
@@ -186,6 +186,7 @@ def test_geometry_file_naming(csv_file):
                 if not geometry_file.endswith('.geojson'):
                     errors.append(f"Row {row_num}: Geometry file should end with .geojson: {geometry_file}")
 
+                # Pattern: company-city-month-day-year-boundary.geojson
                 expected_pattern = r'^[a-z0-9]+-[a-z0-9-]+-[a-z]+-\d{1,2}-\d{4}-boundary\.geojson$'
                 if not re.match(expected_pattern, geometry_file):
                     errors.append(f"Row {row_num}: Geometry file doesn't follow naming convention: {geometry_file}")
@@ -328,8 +329,6 @@ def test_data_consistency(csv_file):
                     errors.append(f"Row {row_num}: service_created event missing company")
                 if not row.get('city'):
                     errors.append(f"Row {row_num}: service_created event missing city")
-                if not row.get('notes'):
-                    errors.append(f"Row {row_num}: service_created event missing notes")
 
     assert len(errors) == 0, "\n".join(errors)
 

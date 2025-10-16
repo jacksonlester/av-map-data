@@ -1,8 +1,16 @@
+# Claude Code instructions (local only)
+.claude-instructions
+
+# Node modules
 node_modules/
+
+# Environment variables
 .env
-*.log
+.env.local
+
+# macOS
 .DS_Store
 
-# Temporary files
-*.tmp
-temp-*.js
+# Cache files
+cache/
+*.cache
