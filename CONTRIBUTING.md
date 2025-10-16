@@ -47,7 +47,9 @@ For `service_created` events, fill in all service attributes:
 2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Stop-to-Stop,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
 ```
 
-Required: `date`, `event_type`, `company`, `city`, `vehicles`, `platform`, `fares`, `direct_booking`, `service_model`, `supervision`, `access`, `source_url`
+Required: `date`, `event_type`, `company`, `city`, `vehicles`, `fares`, `direct_booking`, `service_model`, `supervision`, `access`, `source_url`
+
+Note: `platform` is optional - leave empty if the service doesn't have a booking platform initially, then add it later with a `platform_updated` event.
 
 ## Updating a service
 
