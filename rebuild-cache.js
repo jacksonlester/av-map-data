@@ -161,6 +161,17 @@ async function rebuildCache() {
     const serviceAreas = buildServiceAreasFromEvents(events, geometryMap)
 
     // STEP 4: Create final data structure
+    // Transform geometries to camelCase for frontend
+    const geometriesForFrontend = geometriesWithData.map(geo => ({
+      geometryName: geo.geometry_name,
+      displayName: geo.display_name,
+      fileSize: geo.file_size,
+      createdAt: geo.created_at,
+      storageUrl: geo.storage_url,
+      geojsonData: geo.geojson_data,
+      error: geo.error
+    }));
+
     const cacheData = {
       metadata: {
         generated_at: new Date().toISOString(),
@@ -175,7 +186,7 @@ async function rebuildCache() {
         }
       },
       events: events,
-      geometries: geometriesWithData,
+      geometries: geometriesForFrontend,
       service_areas: serviceAreas,
       date_range: {
         start: '2017-04-25T00:00:00+00:00',
