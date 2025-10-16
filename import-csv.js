@@ -55,6 +55,8 @@ const FIELD_MAPPING = {
   'supervision': 'supervision',
   'access': 'access',
   'fleet_partner': 'fleet_partner',
+  'company_link': 'company_link',
+  'booking_platform_link': 'booking_platform_link',
   'source_url': 'event_url',
   'notes': 'notes'
 }
