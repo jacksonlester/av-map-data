@@ -262,6 +262,14 @@ function transformEventData(eventData) {
     transformed.serviceModel = transformed.service_model
     delete transformed.service_model
   }
+  if (transformed.company_link !== undefined) {
+    transformed.companyLink = transformed.company_link
+    delete transformed.company_link
+  }
+  if (transformed.booking_platform_link !== undefined) {
+    transformed.bookingPlatformLink = transformed.booking_platform_link
+    delete transformed.booking_platform_link
+  }
 
   return transformed
 }
