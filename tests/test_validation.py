@@ -40,7 +40,7 @@ def test_csv_headers(csv_file):
     """Test that CSV has correct headers."""
     expected_headers = [
         'date', 'event_type', 'company', 'city', 'geometry_file',
-        'vehicles', 'platform', 'fares', 'direct_booking', 'supervision',
+        'vehicles', 'platform', 'fares', 'direct_booking', 'service_model', 'supervision',
         'access', 'fleet_partner', 'source_url', 'notes'
     ]
 
@@ -87,7 +87,7 @@ def test_event_types(csv_file):
     valid_event_types = [
         'service_created', 'service_ended', 'geometry_updated',
         'vehicle_types_updated', 'supervision_updated', 'fares_policy_changed',
-        'access_policy_changed', 'platform_updated', 'fleet_partner_changed'
+        'access_policy_changed', 'service_model_updated', 'platform_updated', 'fleet_partner_changed'
     ]
     errors = []
 
@@ -112,7 +112,7 @@ def test_service_created_events(csv_file):
         for row_num, row in enumerate(reader, start=2):
             if row.get('event_type') == 'service_created':
                 required_fields = ['company', 'city', 'vehicles', 'platform', 'fares',
-                                 'direct_booking', 'supervision', 'access']
+                                 'direct_booking', 'service_model', 'supervision', 'access']
                 for field in required_fields:
                     if not row.get(field, '').strip():
                         errors.append(f"Row {row_num}: service_created event missing required field: {field}")
@@ -208,6 +208,11 @@ def test_service_attribute_values(csv_file):
             direct_booking = row.get('direct_booking', '').strip()
             if direct_booking and direct_booking not in ['Yes', 'No']:
                 errors.append(f"Row {row_num}: direct_booking must be 'Yes' or 'No', got: {direct_booking}")
+
+            service_model = row.get('service_model', '').strip()
+            valid_service_model = ['Flexible', 'Stop-to-Stop']
+            if service_model and service_model not in valid_service_model:
+                errors.append(f"Row {row_num}: service_model must be one of {valid_service_model}, got: {service_model}")
 
             supervision = row.get('supervision', '').strip()
             valid_supervision = ['Autonomous', 'Safety Driver', 'Safety Attendant']
