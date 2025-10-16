@@ -111,7 +111,8 @@ def test_service_created_events(csv_file):
 
         for row_num, row in enumerate(reader, start=2):
             if row.get('event_type') == 'service_created':
-                required_fields = ['company', 'city', 'vehicles', 'platform', 'fares',
+                # Note: 'platform' is optional - some services don't have booking platforms initially
+                required_fields = ['company', 'city', 'vehicles', 'fares',
                                  'direct_booking', 'service_model', 'supervision', 'access']
                 for field in required_fields:
                     if not row.get(field, '').strip():
