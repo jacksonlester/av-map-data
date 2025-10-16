@@ -19,7 +19,7 @@ Each row in `events.csv` represents one change to a service. Service creation ev
 
 ## CSV structure
 
-15 columns capture service attributes:
+14 columns capture service attributes:
 
 | Column           | Description                | Example                                      | Required?     |
 | ---------------- | -------------------------- | -------------------------------------------- | ------------- |
@@ -32,7 +32,6 @@ Each row in `events.csv` represents one change to a service. Service creation ev
 | `platform`       | Booking app                | `Robotaxi`                                   | If applicable |
 | `fares`          | Charges fares?             | `Yes` / `No`                                 | If applicable |
 | `direct_booking` | Can book AV directly?      | `Yes` / `No`                                 | If applicable |
-| `service_model`  | Service model              | `Flexible` / `Stop-to-Stop`                  | If applicable |
 | `supervision`    | Supervision level          | `Autonomous` / `Safety Driver`               | If applicable |
 | `access`         | Access policy              | `Public` / `Waitlist`                        | If applicable |
 | `fleet_partner`  | Fleet partnerships         | `Moove`                                      | If applicable |
@@ -44,10 +43,10 @@ Each row in `events.csv` represents one change to a service. Service creation ev
 For `service_created` events, fill in all service attributes:
 
 ```csv
-2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Stop-to-Stop,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
+2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
 ```
 
-Required: `date`, `event_type`, `company`, `city`, `vehicles`, `platform`, `fares`, `direct_booking`, `service_model`, `supervision`, `access`, `source_url`
+Required: `date`, `event_type`, `company`, `city`, `vehicles`, `platform`, `fares`, `direct_booking`, `supervision`, `access`, `source_url`
 
 ## Updating a service
 
@@ -81,12 +80,6 @@ Note: Multiple platforms separated by `;` (semicolon). This allows filtering by 
 2024-11-12,access_policy_changed,Waymo,Los Angeles,,,,,,,Public,,https://waymo.com/blog/2024/11/waymo-one-open-to-all-in-los-angeles,Access policy update
 ```
 
-### Service model change
-
-```csv
-2026-03-15,service_model_updated,Zoox,Las Vegas,,,,,,,Flexible,,,https://example.com,Service now allows flexible travel
-```
-
 ## Event types
 
 **Service lifecycle:**
@@ -102,7 +95,6 @@ Note: Multiple platforms separated by `;` (semicolon). This allows filtering by 
 - `fares_policy_changed` - Fare policy changes
 - `access_policy_changed` - Access changes
 - `supervision_updated` - Supervision level changes
-- `flexibility_updated` - Travel flexibility changes
 - `fleet_partner_changed` - Fleet partnership changes
 
 ## Field values
@@ -120,8 +112,6 @@ Add new values when documenting companies, vehicles, platforms, or policies not 
 **Fares:** `Yes` (charges fares), `No` (free)
 
 **Direct Booking:** `Yes` (book AV directly), `No` (may or may not get AV, like Waymo on UberX)
-
-**Flexibility:** `Point-to-Point` (riders can travel freely between any points in the service area), `Stop-to-Stop` (riders can only travel to/from predetermined stops)
 
 **Supervision:** `Autonomous`, `Safety Driver`, `Safety Attendant`
 

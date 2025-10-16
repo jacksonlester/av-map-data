@@ -52,15 +52,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Import CSV to database
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          STAGING: ${{ steps.env.outputs.STAGING }}
-        run: |
-          echo "Importing events.csv to ${{ steps.env.outputs.ENV_NAME }} database..."
-          node import-csv.js
-
       - name: Rebuild cache
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

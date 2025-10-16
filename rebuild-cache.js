@@ -19,7 +19,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 import { execSync } from 'child_process'
-import area from '@turf/area'
 
 // Load .env file for local development (GitHub Actions sets env vars directly)
 if (!process.env.GITHUB_ACTIONS) {
@@ -142,36 +141,11 @@ async function rebuildCache() {
 
     console.log(`✅ Geometries: ${successful.length} loaded, ${failed.length} failed`)
 
-    // Create geometry lookup map with calculated areas
-    const geometryMap = new Map()
-    geometriesWithData.forEach(geo => {
-      if (geo.geojson_data) {
-        // Calculate area in square meters and convert to square miles
-        const areaSquareMeters = area(geo.geojson_data)
-        const areaSquareMiles = areaSquareMeters / 2589988.11 // 1 sq mi = 2,589,988.11 sq m
-        geometryMap.set(geo.geometry_name, {
-          geojson: geo.geojson_data,
-          area_square_miles: Math.round(areaSquareMiles * 100) / 100 // Round to 2 decimals
-        })
-      }
-    })
-
     // STEP 3: Process service areas
     console.log('⚙️ Processing service areas...')
-    const serviceAreas = buildServiceAreasFromEvents(events, geometryMap)
+    const serviceAreas = buildServiceAreasFromEvents(events)
 
     // STEP 4: Create final data structure
-    // Transform geometries to camelCase for frontend
-    const geometriesForFrontend = geometriesWithData.map(geo => ({
-      geometryName: geo.geometry_name,
-      displayName: geo.display_name,
-      fileSize: geo.file_size,
-      createdAt: geo.created_at,
-      storageUrl: geo.storage_url,
-      geojsonData: geo.geojson_data,
-      error: geo.error
-    }));
-
     const cacheData = {
       metadata: {
         generated_at: new Date().toISOString(),
@@ -186,7 +160,7 @@ async function rebuildCache() {
         }
       },
       events: events,
-      geometries: geometriesForFrontend,
+      geometries: geometriesWithData,
       service_areas: serviceAreas,
       date_range: {
         start: '2017-04-25T00:00:00+00:00',
@@ -248,45 +222,8 @@ async function rebuildCache() {
   }
 }
 
-// Helper function to transform snake_case to camelCase for frontend compatibility
-function transformEventData(eventData) {
-  const transformed = { ...eventData }
-
-  // Transform snake_case fields to camelCase
-  if (transformed.direct_booking !== undefined) {
-    transformed.directBooking = transformed.direct_booking
-    delete transformed.direct_booking
-  }
-  if (transformed.vehicle_types !== undefined) {
-    transformed.vehicleTypes = transformed.vehicle_types
-    delete transformed.vehicle_types
-  }
-  if (transformed.fleet_partner !== undefined) {
-    transformed.fleetPartner = transformed.fleet_partner
-    delete transformed.fleet_partner
-  }
-  if (transformed.geometry_name !== undefined) {
-    transformed.geojsonPath = transformed.geometry_name
-    delete transformed.geometry_name
-  }
-  if (transformed.service_model !== undefined) {
-    transformed.serviceModel = transformed.service_model
-    delete transformed.service_model
-  }
-  if (transformed.company_link !== undefined) {
-    transformed.companyLink = transformed.company_link
-    delete transformed.company_link
-  }
-  if (transformed.booking_platform_link !== undefined) {
-    transformed.bookingPlatformLink = transformed.booking_platform_link
-    delete transformed.booking_platform_link
-  }
-
-  return transformed
-}
-
 // Service area processing logic
-function buildServiceAreasFromEvents(events, geometryMap) {
+function buildServiceAreasFromEvents(events) {
   const currentServiceStates = new Map()
   const allStates = []
 
@@ -300,22 +237,14 @@ function buildServiceAreasFromEvents(events, geometryMap) {
     const currentState = currentServiceStates.get(serviceId) || { isActive: false }
 
     if (event.event_type === 'service_created') {
-      const transformedData = transformEventData(event.event_data)
-      const geojsonPath = transformedData.geojsonPath || event.event_data.geometry_name
-
-      // Add calculated area from geometry
-      const geometryData = geometryMap.get(geojsonPath)
-      const areaSquareMiles = geometryData?.area_square_miles || null
-
       const newState = {
-        ...transformedData,
+        ...event.event_data,
         id: `${serviceId}-${event.event_date}`,
         serviceId: serviceId,
         effectiveDate: eventDate,
         lastUpdated: eventDate,
         isActive: true,
-        geojsonPath: geojsonPath,
-        area_square_miles: areaSquareMiles
+        geojsonPath: event.event_data.geometry_name
       }
 
       currentServiceStates.set(serviceId, newState)
@@ -337,14 +266,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         const lastStateDate = lastState ? new Date(lastState.effectiveDate).getTime() : 0
         const currentEventDate = eventDate.getTime()
 
-        const newGeojsonPath = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState?.geojsonPath
-        const geometryData = geometryMap.get(newGeojsonPath)
-        const areaSquareMiles = geometryData?.area_square_miles || null
-
         if (lastState && lastStateDate === currentEventDate) {
           // Same date - update existing state in place
-          lastState.geojsonPath = newGeojsonPath
-          lastState.area_square_miles = areaSquareMiles
+          lastState.geojsonPath = event.event_data.geometry_name || event.event_data.new_geometry_name || lastState.geojsonPath
           lastState.lastUpdated = eventDate
           currentServiceStates.set(serviceId, lastState)
         } else {
@@ -354,8 +278,7 @@ function buildServiceAreasFromEvents(events, geometryMap) {
             id: `${serviceId}-${event.event_date}`,
             effectiveDate: eventDate,
             lastUpdated: eventDate,
-            geojsonPath: newGeojsonPath,
-            area_square_miles: areaSquareMiles
+            geojsonPath: event.event_data.geometry_name || event.event_data.new_geometry_name || currentState.geojsonPath
           }
 
           if (lastState) {
@@ -367,9 +290,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         }
       }
 
-    } else if (['service_updated', 'fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'service_model_updated', 'fleet_partner_changed'].includes(event.event_type)) {
+    } else if (['service_updated', 'fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'fleet_partner_changed'].includes(event.event_type)) {
       if (currentState.isActive) {
-        const shouldCreateNewState = ['fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'service_model_updated', 'fleet_partner_changed'].includes(event.event_type)
+        const shouldCreateNewState = ['fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'fleet_partner_changed'].includes(event.event_type)
 
         if (shouldCreateNewState) {
           // Check if last state has same effectiveDate - if so, update in place instead of creating new state
@@ -378,21 +301,19 @@ function buildServiceAreasFromEvents(events, geometryMap) {
           const currentEventDate = eventDate.getTime()
 
           if (lastState && lastStateDate === currentEventDate) {
-            // Same date - update existing state in place (using camelCase for frontend)
+            // Same date - update existing state in place
             if (event.event_type === 'fares_policy_changed') {
               lastState.fares = event.event_data.new_fares
             } else if (event.event_type === 'access_policy_changed') {
               lastState.access = event.event_data.new_access
             } else if (event.event_type === 'vehicle_types_updated') {
-              lastState.vehicleTypes = event.event_data.new_vehicle_types || event.event_data.vehicle_types
+              lastState.vehicleTypes = event.event_data.new_vehicle_types
             } else if (event.event_type === 'platform_updated') {
               lastState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
               lastState.supervision = event.event_data.new_supervision
-            } else if (event.event_type === 'service_model_updated') {
-              lastState.serviceModel = event.event_data.new_service_model
             } else if (event.event_type === 'fleet_partner_changed') {
-              lastState.fleetPartner = event.event_data.new_fleet_partner || event.event_data.fleet_partner
+              lastState.fleet_partner = event.event_data.new_fleet_partner
             }
             lastState.lastUpdated = eventDate
             currentServiceStates.set(serviceId, lastState)
@@ -405,21 +326,19 @@ function buildServiceAreasFromEvents(events, geometryMap) {
               lastUpdated: eventDate
             }
 
-            // Apply field updates (using camelCase for frontend)
+            // Apply field updates
             if (event.event_type === 'fares_policy_changed') {
               newState.fares = event.event_data.new_fares
             } else if (event.event_type === 'access_policy_changed') {
               newState.access = event.event_data.new_access
             } else if (event.event_type === 'vehicle_types_updated') {
-              newState.vehicleTypes = event.event_data.new_vehicle_types || event.event_data.vehicle_types
+              newState.vehicleTypes = event.event_data.new_vehicle_types
             } else if (event.event_type === 'platform_updated') {
               newState.platform = event.event_data.new_platform
             } else if (event.event_type === 'supervision_updated') {
               newState.supervision = event.event_data.new_supervision
-            } else if (event.event_type === 'service_model_updated') {
-              newState.serviceModel = event.event_data.new_service_model
             } else if (event.event_type === 'fleet_partner_changed') {
-              newState.fleetPartner = event.event_data.new_fleet_partner || event.event_data.fleet_partner
+              newState.fleet_partner = event.event_data.new_fleet_partner
             }
 
             if (lastState) {
