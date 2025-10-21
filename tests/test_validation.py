@@ -41,7 +41,7 @@ def test_csv_headers(csv_file):
     expected_headers = [
         'date', 'event_type', 'company', 'city', 'geometry_file',
         'vehicles', 'platform', 'fares', 'direct_booking', 'service_model', 'supervision',
-        'access', 'fleet_partner', 'company_link', 'booking_platform_link', 'source_url', 'notes'
+        'access', 'fleet_partner', 'expected_launch', 'company_link', 'booking_platform_link', 'source_url', 'notes'
     ]
 
     with open(csv_file, 'r') as f:
@@ -87,7 +87,8 @@ def test_event_types(csv_file):
     valid_event_types = [
         'service_created', 'service_ended', 'geometry_updated',
         'vehicle_types_updated', 'supervision_updated', 'fares_policy_changed',
-        'access_policy_changed', 'service_model_updated', 'platform_updated', 'fleet_partner_changed'
+        'access_policy_changed', 'service_model_updated', 'platform_updated', 'fleet_partner_changed',
+        'service_testing', 'service_announced'
     ]
     errors = []
 
@@ -144,6 +145,46 @@ def test_service_ended_events(csv_file):
     assert len(errors) == 0, "\n".join(errors)
 
 
+def test_service_testing_events(csv_file):
+    """Test that service_testing events have required fields."""
+    errors = []
+
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
+
+        for row_num, row in enumerate(reader, start=2):
+            if row.get('event_type') == 'service_testing':
+                # Only require company, city, source_url
+                if not row.get('company', '').strip():
+                    errors.append(f"Row {row_num}: service_testing event missing required field: company")
+                if not row.get('city', '').strip():
+                    errors.append(f"Row {row_num}: service_testing event missing required field: city")
+                if not row.get('source_url', '').strip():
+                    errors.append(f"Row {row_num}: service_testing event missing required field: source_url")
+
+    assert len(errors) == 0, "\n".join(errors)
+
+
+def test_service_announced_events(csv_file):
+    """Test that service_announced events have required fields."""
+    errors = []
+
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
+
+        for row_num, row in enumerate(reader, start=2):
+            if row.get('event_type') == 'service_announced':
+                # Only require company, city, source_url
+                if not row.get('company', '').strip():
+                    errors.append(f"Row {row_num}: service_announced event missing required field: company")
+                if not row.get('city', '').strip():
+                    errors.append(f"Row {row_num}: service_announced event missing required field: city")
+                if not row.get('source_url', '').strip():
+                    errors.append(f"Row {row_num}: service_announced event missing required field: source_url")
+
+    assert len(errors) == 0, "\n".join(errors)
+
+
 def test_update_events(csv_file):
     """Test that update events are correctly formatted."""
     errors = []
@@ -175,7 +216,7 @@ def test_update_events(csv_file):
 
 
 def test_geometry_file_naming(csv_file):
-    """Test that geometry files follow naming conventions."""
+    """Test that geometry files follow naming conventions or are valid inline coordinates."""
     errors = []
 
     with open(csv_file, 'r') as f:
@@ -184,8 +225,13 @@ def test_geometry_file_naming(csv_file):
         for row_num, row in enumerate(reader, start=2):
             geometry_file = row.get('geometry_file', '')
             if geometry_file:
+                # Check if it's inline coordinates (lng,lat format)
+                if re.match(r'^-?\d+\.?\d*,-?\d+\.?\d*$', geometry_file):
+                    # Valid inline coordinates - skip file naming validation
+                    continue
+
                 if not geometry_file.endswith('.geojson'):
-                    errors.append(f"Row {row_num}: Geometry file should end with .geojson: {geometry_file}")
+                    errors.append(f"Row {row_num}: Geometry file should end with .geojson or be inline coordinates (lng,lat): {geometry_file}")
 
                 # Pattern: company-city-month-day-year-boundary.geojson
                 expected_pattern = r'^[a-z0-9]+-[a-z0-9-]+-[a-z]+-\d{1,2}-\d{4}-boundary\.geojson$'
@@ -309,6 +355,10 @@ def test_geometry_file_references(csv_file, geometries_dir):
         for row_num, row in enumerate(reader, start=2):
             geometry_file = row.get('geometry_file', '').strip()
             if geometry_file:
+                # Skip validation if it's inline coordinates (lng,lat format)
+                if re.match(r'^-?\d+\.?\d*,-?\d+\.?\d*$', geometry_file):
+                    continue
+
                 geometry_path = geometries_dir / geometry_file
                 if not geometry_path.exists():
                     errors.append(f"Row {row_num}: Referenced geometry file does not exist: {geometry_file}")
