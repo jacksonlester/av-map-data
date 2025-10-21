@@ -36,20 +36,35 @@ Each row in `events.csv` represents one change to a service. Service creation ev
 | `supervision`    | Supervision level          | `Autonomous` / `Safety Driver`               | If applicable |
 | `access`         | Access policy              | `Public` / `Waitlist`                        | If applicable |
 | `fleet_partner`  | Fleet partnerships         | `Moove`                                      | If applicable |
+| `expected_launch`| Expected launch timeframe  | `2026`, `Q2 2026`, `March 2026`              | If applicable |
 | `source_url`     | Source link                | `https://...`                                | Preferred     |
 | `notes`          | Additional context         | `Initial service launch`                     | Preferred     |
 
 ## Adding a new service
 
+### Announced or testing service
+
+For `service_testing` or `service_announced` events, only basic info required:
+
+```csv
+2025-09-17,service_announced,Waymo,Nashville,,,Lyft,Yes,,Flexible,,,,,2026,https://waymo.com/blog/nashville,Partnership with Lyft announced
+```
+
+Required: `date`, `event_type`, `company`, `city`, `source_url`
+
+All other fields optional. Add details as they become available using update events.
+
+### Active service launch
+
 For `service_created` events, fill in all service attributes:
 
 ```csv
-2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Stop-to-Stop,Autonomous,Public,,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
+2025-09-10,service_created,Zoox,Las Vegas,zoox-las-vegas-september-10-2025-boundary.geojson,Zoox Robotaxi,Zoox,No,Yes,Stop-to-Stop,Autonomous,Public,,,https://zoox.com/,https://zoox.com/ride,https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public/,Zoox Las Vegas service
 ```
 
 Required: `date`, `event_type`, `company`, `city`, `vehicles`, `fares`, `direct_booking`, `service_model`, `supervision`, `access`, `source_url`
 
-Note: `platform` is optional - leave empty if the service doesn't have a booking platform initially, then add it later with a `platform_updated` event.
+Note: `platform`, `expected_launch`, and `notes` are optional.
 
 ## Updating a service
 
@@ -93,8 +108,16 @@ Note: Multiple platforms separated by `;` (semicolon). This allows filtering by 
 
 **Service lifecycle:**
 
-- `service_created` - New service launch (fill all fields)
+- `service_testing` - Testing spotted (may be unconfirmed)
+- `service_announced` - Official public announcement
+- `service_created` - Service launches to public/waitlist
 - `service_ended` - Service discontinued
+
+Services progress: testing → announced → active (both testing and announcement optional)
+
+**Required fields:**
+- `service_testing` / `service_announced`: Only date, company, city, source_url
+- `service_created`: All service attributes (vehicles, platform, fares, etc.)
 
 **Service changes (must include company + changed field with complete new state):**
 
@@ -106,6 +129,21 @@ Note: Multiple platforms separated by `;` (semicolon). This allows filtering by 
 - `supervision_updated` - Supervision level changes
 - `flexibility_updated` - Travel flexibility changes
 - `fleet_partner_changed` - Fleet partnership changes
+
+## Lifecycle examples
+
+**With announcement:**
+```csv
+2025-09-17,service_announced,Waymo,Nashville,,,Lyft,Yes,,,,,,2026,https://waymo.com/,...,Announced
+2026-03-20,service_created,Waymo,Nashville,waymo-nashville-march-2026.geojson,Jaguar I-Pace,Waymo;Lyft,Yes,No,Flexible,Autonomous,Waitlist,,,,https://waymo.com/,...,Launched
+```
+
+**Direct launch (no announcement):**
+```csv
+2025-11-10,service_created,Zoox,Austin,zoox-austin-november-2025.geojson,Zoox Robotaxi,Zoox,No,Yes,Stop-to-Stop,Autonomous,Public,,,,https://zoox.com/,...,Launch
+```
+
+Note: `service_testing` can precede announcement if testing is spotted first.
 
 ## Field values
 
@@ -130,6 +168,21 @@ Add new values when documenting companies, vehicles, platforms, or policies not 
 **Access:** `Public`, `Waitlist`
 
 ## Geometry files
+
+You have two options for specifying service locations:
+
+### Option 1: Inline coordinates (for single-point locations)
+
+For services without defined boundaries, use inline coordinates in the `geometry_file` column.
+
+Format: `longitude,latitude` (e.g., `-97.7431,30.2672`)
+
+Example:
+```csv
+2025-09-16,service_created,Example Co,Austin,-97.7431,30.2672,Example Vehicle,Example Platform,Yes,Yes,Flexible,Autonomous,Public,,https://example.com/link,,https://source.com/article,Notes here
+```
+
+### Option 2: GeoJSON boundary files (for service areas)
 
 If adding service area boundaries:
 
