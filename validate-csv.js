@@ -125,9 +125,9 @@ function validateServiceTimeline(serviceId, events) {
   events.forEach((event, index) => {
     const { lineNum, event_type } = event
 
-    // Check 1: First event must be service_created
-    if (index === 0 && event_type !== 'service_created') {
-      error(`Line ${lineNum}: First event for ${serviceId} must be 'service_created', found '${event_type}'`)
+    // Check 1: First event must be service_created, service_testing, or service_announced
+    if (index === 0 && !['service_created', 'service_testing', 'service_announced'].includes(event_type)) {
+      error(`Line ${lineNum}: First event for ${serviceId} must be 'service_created', 'service_testing', or 'service_announced', found '${event_type}'`)
       return
     }
 
@@ -256,6 +256,43 @@ function validateServiceTimeline(serviceId, events) {
       }
     }
 
+    else if (event_type === 'service_testing') {
+      if (hasServiceCreated) {
+        error(`Line ${lineNum}: service_testing cannot occur after service_created for ${serviceId}`)
+      } else {
+        info(`  ✓ Line ${lineNum}: service testing event recorded`)
+        currentState.status = 'testing'
+        // Update state with any provided fields
+        if (event.vehicles) currentState.vehicles = event.vehicles.trim()
+        if (event.platform) currentState.platform = event.platform.trim()
+        if (event.supervision) currentState.supervision = event.supervision.trim()
+        if (event.geometry_file) {
+          currentState.geometry_file = event.geometry_file.trim()
+          validateGeometryFilename(lineNum, event.geometry_file, event.date, serviceId)
+        }
+      }
+    }
+
+    else if (event_type === 'service_announced') {
+      if (hasServiceCreated) {
+        error(`Line ${lineNum}: service_announced cannot occur after service_created for ${serviceId}`)
+      } else {
+        info(`  ✓ Line ${lineNum}: service announcement recorded`)
+        currentState.status = 'announced'
+        // Update state with any provided fields
+        if (event.vehicles) currentState.vehicles = event.vehicles.trim()
+        if (event.platform) currentState.platform = event.platform.trim()
+        if (event.supervision) currentState.supervision = event.supervision.trim()
+        if (event.fares) currentState.fares = event.fares.trim()
+        if (event.access) currentState.access = event.access.trim()
+        if (event.service_model) currentState.service_model = event.service_model.trim()
+        if (event.geometry_file) {
+          currentState.geometry_file = event.geometry_file.trim()
+          validateGeometryFilename(lineNum, event.geometry_file, event.date, serviceId)
+        }
+      }
+    }
+
     else if (event_type === 'service_ended') {
       info(`  ✓ Line ${lineNum}: service ended`)
     }
@@ -265,14 +302,19 @@ function validateServiceTimeline(serviceId, events) {
     }
   })
 
-  if (!hasServiceCreated) {
-    error(`Service ${serviceId} has no service_created event`)
-  }
+  // Note: We don't require service_created anymore since services can be in testing/announced status
+  // without being fully operational yet
 }
 
 function validateGeometryFilename(lineNum, filename, eventDate, serviceId) {
+  // Check if it's inline coordinates (lng,lat format)
+  if (/^-?\d+\.?\d*,-?\d+\.?\d*$/.test(filename)) {
+    info(`  ✓ Line ${lineNum}: Using inline coordinates: ${filename}`)
+    return
+  }
+
   if (!filename.endsWith('.geojson')) {
-    error(`Line ${lineNum}: Geometry file must end with .geojson: ${filename}`)
+    error(`Line ${lineNum}: Geometry file must end with .geojson or be inline coordinates (lng,lat): ${filename}`)
     return
   }
 
