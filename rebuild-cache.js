@@ -268,6 +268,12 @@ function transformEventData(eventData) {
   if (transformed.geometry_name !== undefined) {
     transformed.geojsonPath = transformed.geometry_name
     delete transformed.geometry_name
+
+    // Check if this is inline coordinates (format: "lng,lat")
+    if (typeof transformed.geojsonPath === 'string' && /^-?\d+\.?\d*,-?\d+\.?\d*$/.test(transformed.geojsonPath)) {
+      const [lng, lat] = transformed.geojsonPath.split(',').map(parseFloat)
+      transformed.coordinates = [lng, lat]
+    }
   }
   if (transformed.service_model !== undefined) {
     transformed.serviceModel = transformed.service_model
