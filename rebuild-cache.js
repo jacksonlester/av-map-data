@@ -289,6 +289,17 @@ function transformEventData(eventData) {
   return transformed
 }
 
+// Helper function to parse inline coordinates from geojsonPath
+function parseInlineCoordinates(geojsonPath) {
+  if (!geojsonPath) return null
+  // Check if it matches the inline coordinate format: "lng,lat" or "-lng,lat"
+  const coordMatch = geojsonPath.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/)
+  if (coordMatch) {
+    return [parseFloat(coordMatch[1]), parseFloat(coordMatch[2])]
+  }
+  return null
+}
+
 // Service area processing logic
 function buildServiceAreasFromEvents(events, geometryMap) {
   const currentServiceStates = new Map()
@@ -310,6 +321,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       const geometryData = geometryMap.get(geojsonPath)
       const areaSquareMiles = geometryData?.area_square_miles || null
 
+      // Parse inline coordinates if present
+      const coordinates = parseInlineCoordinates(geojsonPath)
+
       const newState = {
         ...transformedData,
         id: `${serviceId}-${event.event_date}`,
@@ -319,7 +333,8 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         isActive: false,
         status: 'testing',
         geojsonPath: geojsonPath,
-        area_square_miles: areaSquareMiles
+        area_square_miles: areaSquareMiles,
+        ...(coordinates && { coordinates })
       }
 
       currentServiceStates.set(serviceId, newState)
@@ -332,6 +347,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       const geometryData = geometryMap.get(geojsonPath)
       const areaSquareMiles = geometryData?.area_square_miles || null
 
+      // Parse inline coordinates if present
+      const coordinates = parseInlineCoordinates(geojsonPath)
+
       // Check if there's an existing testing state - if so, update it
       const lastState = allStates.filter(s => s.serviceId === serviceId && !s.endDate).pop()
 
@@ -343,6 +361,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         if (geojsonPath) {
           lastState.geojsonPath = geojsonPath
           lastState.area_square_miles = areaSquareMiles
+          if (coordinates) {
+            lastState.coordinates = coordinates
+          }
         }
         currentServiceStates.set(serviceId, lastState)
       } else {
@@ -356,7 +377,8 @@ function buildServiceAreasFromEvents(events, geometryMap) {
           isActive: false,
           status: 'announced',
           geojsonPath: geojsonPath,
-          area_square_miles: areaSquareMiles
+          area_square_miles: areaSquareMiles,
+          ...(coordinates && { coordinates })
         }
 
         currentServiceStates.set(serviceId, newState)
@@ -371,6 +393,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       const geometryData = geometryMap.get(geojsonPath)
       const areaSquareMiles = geometryData?.area_square_miles || null
 
+      // Parse inline coordinates if present
+      const coordinates = parseInlineCoordinates(geojsonPath)
+
       // Check if there's an existing testing/announced state - if so, update it
       const lastState = allStates.filter(s => s.serviceId === serviceId && !s.endDate).pop()
 
@@ -383,6 +408,9 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         if (geojsonPath) {
           lastState.geojsonPath = geojsonPath
           lastState.area_square_miles = areaSquareMiles
+          if (coordinates) {
+            lastState.coordinates = coordinates
+          }
         }
         currentServiceStates.set(serviceId, lastState)
       } else {
@@ -396,7 +424,8 @@ function buildServiceAreasFromEvents(events, geometryMap) {
           isActive: true,
           status: 'active',
           geojsonPath: geojsonPath,
-          area_square_miles: areaSquareMiles
+          area_square_miles: areaSquareMiles,
+          ...(coordinates && { coordinates })
         }
 
         currentServiceStates.set(serviceId, newState)
@@ -423,11 +452,19 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         const geometryData = geometryMap.get(newGeojsonPath)
         const areaSquareMiles = geometryData?.area_square_miles || null
 
+        // Parse inline coordinates if present
+        const coordinates = parseInlineCoordinates(newGeojsonPath)
+
         if (lastState && lastStateDate === currentEventDate) {
           // Same date - update existing state in place
           lastState.geojsonPath = newGeojsonPath
           lastState.area_square_miles = areaSquareMiles
           lastState.lastUpdated = eventDate
+          if (coordinates) {
+            lastState.coordinates = coordinates
+          } else {
+            delete lastState.coordinates
+          }
           currentServiceStates.set(serviceId, lastState)
         } else {
           // Different date - create new state
@@ -437,7 +474,8 @@ function buildServiceAreasFromEvents(events, geometryMap) {
             effectiveDate: eventDate,
             lastUpdated: eventDate,
             geojsonPath: newGeojsonPath,
-            area_square_miles: areaSquareMiles
+            area_square_miles: areaSquareMiles,
+            ...(coordinates && { coordinates })
           }
 
           if (lastState) {
