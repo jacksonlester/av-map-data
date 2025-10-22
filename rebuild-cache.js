@@ -281,6 +281,10 @@ function transformEventData(eventData) {
     transformed.bookingPlatformLink = transformed.booking_platform_link
     delete transformed.booking_platform_link
   }
+  if (transformed.expected_launch !== undefined) {
+    transformed.expectedLaunch = transformed.expected_launch
+    delete transformed.expected_launch
+  }
 
   return transformed
 }
@@ -297,13 +301,12 @@ function buildServiceAreasFromEvents(events, geometryMap) {
   for (const event of sortedEvents) {
     const serviceId = event.aggregate_id
     const eventDate = new Date(event.event_date)
-    const currentState = currentServiceStates.get(serviceId) || { isActive: false }
+    const currentState = currentServiceStates.get(serviceId) || { isActive: false, status: null }
 
-    if (event.event_type === 'service_created') {
+    if (event.event_type === 'service_testing') {
       const transformedData = transformEventData(event.event_data)
       const geojsonPath = transformedData.geojsonPath || event.event_data.geometry_name
 
-      // Add calculated area from geometry
       const geometryData = geometryMap.get(geojsonPath)
       const areaSquareMiles = geometryData?.area_square_miles || null
 
@@ -313,13 +316,92 @@ function buildServiceAreasFromEvents(events, geometryMap) {
         serviceId: serviceId,
         effectiveDate: eventDate,
         lastUpdated: eventDate,
-        isActive: true,
+        isActive: false,
+        status: 'testing',
         geojsonPath: geojsonPath,
         area_square_miles: areaSquareMiles
       }
 
       currentServiceStates.set(serviceId, newState)
       allStates.push(newState)
+
+    } else if (event.event_type === 'service_announced') {
+      const transformedData = transformEventData(event.event_data)
+      const geojsonPath = transformedData.geojsonPath || event.event_data.geometry_name
+
+      const geometryData = geometryMap.get(geojsonPath)
+      const areaSquareMiles = geometryData?.area_square_miles || null
+
+      // Check if there's an existing testing state - if so, update it
+      const lastState = allStates.filter(s => s.serviceId === serviceId && !s.endDate).pop()
+
+      if (lastState && lastState.status === 'testing') {
+        // Upgrade testing to announced - update existing state
+        lastState.status = 'announced'
+        Object.assign(lastState, transformedData)
+        lastState.lastUpdated = eventDate
+        if (geojsonPath) {
+          lastState.geojsonPath = geojsonPath
+          lastState.area_square_miles = areaSquareMiles
+        }
+        currentServiceStates.set(serviceId, lastState)
+      } else {
+        // New announcement without prior testing
+        const newState = {
+          ...transformedData,
+          id: `${serviceId}-${event.event_date}`,
+          serviceId: serviceId,
+          effectiveDate: eventDate,
+          lastUpdated: eventDate,
+          isActive: false,
+          status: 'announced',
+          geojsonPath: geojsonPath,
+          area_square_miles: areaSquareMiles
+        }
+
+        currentServiceStates.set(serviceId, newState)
+        allStates.push(newState)
+      }
+
+    } else if (event.event_type === 'service_created') {
+      const transformedData = transformEventData(event.event_data)
+      const geojsonPath = transformedData.geojsonPath || event.event_data.geometry_name
+
+      // Add calculated area from geometry
+      const geometryData = geometryMap.get(geojsonPath)
+      const areaSquareMiles = geometryData?.area_square_miles || null
+
+      // Check if there's an existing testing/announced state - if so, update it
+      const lastState = allStates.filter(s => s.serviceId === serviceId && !s.endDate).pop()
+
+      if (lastState && (lastState.status === 'testing' || lastState.status === 'announced')) {
+        // Transition from testing/announced to active - update existing state
+        lastState.status = 'active'
+        lastState.isActive = true
+        Object.assign(lastState, transformedData)
+        lastState.lastUpdated = eventDate
+        if (geojsonPath) {
+          lastState.geojsonPath = geojsonPath
+          lastState.area_square_miles = areaSquareMiles
+        }
+        currentServiceStates.set(serviceId, lastState)
+      } else {
+        // Direct launch without prior testing/announcement
+        const newState = {
+          ...transformedData,
+          id: `${serviceId}-${event.event_date}`,
+          serviceId: serviceId,
+          effectiveDate: eventDate,
+          lastUpdated: eventDate,
+          isActive: true,
+          status: 'active',
+          geojsonPath: geojsonPath,
+          area_square_miles: areaSquareMiles
+        }
+
+        currentServiceStates.set(serviceId, newState)
+        allStates.push(newState)
+      }
 
     } else if (event.event_type === 'service_ended') {
       if (currentState.isActive) {
@@ -331,7 +413,7 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       }
 
     } else if (event.event_type === 'geometry_updated' || event.event_type === 'Service Area Change') {
-      if (currentState.isActive) {
+      if (currentState.isActive || currentState.status === 'testing' || currentState.status === 'announced') {
         // Check if last state has same effectiveDate - if so, update in place instead of creating new state
         const lastState = allStates.filter(s => s.serviceId === serviceId && !s.endDate).pop()
         const lastStateDate = lastState ? new Date(lastState.effectiveDate).getTime() : 0
@@ -368,7 +450,7 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       }
 
     } else if (['service_updated', 'fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'service_model_updated', 'fleet_partner_changed'].includes(event.event_type)) {
-      if (currentState.isActive) {
+      if (currentState.isActive || currentState.status === 'testing' || currentState.status === 'announced') {
         const shouldCreateNewState = ['fares_policy_changed', 'access_policy_changed', 'vehicle_types_updated', 'platform_updated', 'supervision_updated', 'service_model_updated', 'fleet_partner_changed'].includes(event.event_type)
 
         if (shouldCreateNewState) {
@@ -433,6 +515,14 @@ function buildServiceAreasFromEvents(events, geometryMap) {
       }
     }
   }
+
+  // Set default status for backward compatibility
+  // Services without status field are assumed to be active (unless they have endDate)
+  allStates.forEach(state => {
+    if (!state.status) {
+      state.status = state.endDate ? 'ended' : 'active'
+    }
+  })
 
   console.log(`   Created ${allStates.length} service area states from ${sortedEvents.length} events`)
   return allStates
