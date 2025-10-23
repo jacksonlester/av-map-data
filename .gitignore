@@ -21,3 +21,11 @@ all-data*.json
 
 # Personal folders
 Jackson/
+av-map-data/
+good-production-data.json
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

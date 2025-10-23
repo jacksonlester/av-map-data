@@ -33,9 +33,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: '.dev/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
+        run: cd .dev && npm ci
 
       - name: Determine environment
         id: env
@@ -56,9 +57,9 @@ jobs:
           GITHUB_ACTIONS: true
         run: |
           if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
-            STAGING=true node import-csv.js
+            STAGING=true node .dev/import-csv.js
           else
-            node import-csv.js
+            node .dev/import-csv.js
           fi
 
       - name: Upload geometry files to storage
@@ -69,9 +70,9 @@ jobs:
           GITHUB_ACTIONS: true
         run: |
           if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
-            STAGING=true node upload-geometries.js
+            STAGING=true node .dev/upload-geometries.js
           else
-            node upload-geometries.js
+            node .dev/upload-geometries.js
           fi
 
       - name: Sync geometries table with storage
@@ -82,9 +83,9 @@ jobs:
           GITHUB_ACTIONS: true
         run: |
           if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
-            STAGING=true node sync-geometries-table.js
+            STAGING=true node .dev/sync-geometries-table.js
           else
-            node sync-geometries-table.js
+            node .dev/sync-geometries-table.js
           fi
 
       - name: Rebuild cache
@@ -95,9 +96,9 @@ jobs:
           GITHUB_ACTIONS: true
         run: |
           if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
-            STAGING=true node rebuild-cache.js
+            STAGING=true node .dev/rebuild-cache.js
           else
-            node rebuild-cache.js
+            node .dev/rebuild-cache.js
           fi
 
       - name: Summary
