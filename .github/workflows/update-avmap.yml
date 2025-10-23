@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r .dev/requirements-dev.txt
 
       - name: Validate Data
         run: python3 scripts/validate.py
