@@ -59,7 +59,7 @@ jobs:
           STAGING: ${{ steps.env.outputs.STAGING }}
         run: |
           echo "Importing events.csv to ${{ steps.env.outputs.ENV_NAME }} database..."
-          node import-csv.js
+          node .dev/import-csv.js
 
       - name: Rebuild cache
         env:
@@ -68,4 +68,4 @@ jobs:
           STAGING: ${{ steps.env.outputs.STAGING }}
         run: |
           echo "Rebuilding ${{ steps.env.outputs.ENV_NAME }} cache..."
-          node rebuild-cache.js
+          node .dev/rebuild-cache.js
