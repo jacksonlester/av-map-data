@@ -259,11 +259,18 @@ python3 scripts/validate.py
 
 Pull requests run tests automatically via GitHub Actions.
 
+## Schema changes
+
+Schema is defined in `.dev/schema.json`. To add columns/event types:
+1. Edit `.dev/schema.json` (add definitions), bump version
+2. Run `python3 scripts/check_schema_version.py`
+3. Tests auto-update from schema - no manual test changes needed
+
 ## Submission
 
 1. Fork this repository and create a feature branch from `main`
 2. Make your changes
-3. Run tests (`pytest tests/ -v`)
+3. Run tests (`python3 scripts/check_schema_version.py && pytest tests/ -v`)
 4. Push your branch and create a pull request to the `staging` branch
 
 ## Questions?
