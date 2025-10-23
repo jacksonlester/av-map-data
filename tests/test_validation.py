@@ -11,6 +11,7 @@ import warnings
 from pathlib import Path
 import re
 from urllib.parse import urlparse
+from schema_loader import get_schema, get_event_types, get_column_names, get_enum_values, get_required_fields
 
 
 @pytest.fixture
@@ -249,28 +250,14 @@ def test_service_attribute_values(csv_file):
         reader = csv.DictReader(f)
 
         for row_num, row in enumerate(reader, start=2):
-            fares = row.get('fares', '').strip()
-            if fares and fares not in ['Yes', 'No']:
-                errors.append(f"Row {row_num}: fares must be 'Yes' or 'No', got: {fares}")
-
-            direct_booking = row.get('direct_booking', '').strip()
-            if direct_booking and direct_booking not in ['Yes', 'No']:
-                errors.append(f"Row {row_num}: direct_booking must be 'Yes' or 'No', got: {direct_booking}")
-
-            service_model = row.get('service_model', '').strip()
-            valid_service_model = ['Flexible', 'Stop-to-Stop']
-            if service_model and service_model not in valid_service_model:
-                errors.append(f"Row {row_num}: service_model must be one of {valid_service_model}, got: {service_model}")
-
-            supervision = row.get('supervision', '').strip()
-            valid_supervision = ['Autonomous', 'Safety Driver', 'Safety Attendant']
-            if supervision and supervision not in valid_supervision:
-                errors.append(f"Row {row_num}: supervision must be one of {valid_supervision}, got: {supervision}")
-
-            access = row.get('access', '').strip()
-            valid_access = ['Public', 'Waitlist', 'Employees Only', 'Invite Only']
-            if access and access not in valid_access:
-                errors.append(f"Row {row_num}: access must be one of {valid_access}, got: {access}")
+            # Validate enum fields using schema
+            enum_fields = ['fares', 'direct_booking', 'service_model', 'supervision', 'access']
+            for field in enum_fields:
+                value = row.get(field, '').strip()
+                if value:
+                    valid_values = get_enum_values(field)
+                    if value not in valid_values:
+                        errors.append(f"Row {row_num}: {field} must be one of {valid_values}, got: {value}")
 
     assert len(errors) == 0, "\n".join(errors)
 
@@ -310,19 +297,27 @@ def test_geojson_files_valid(geometries_dir):
             with open(geojson_file, 'r') as f:
                 geojson_data = json.load(f)
 
-            if geojson_data.get('type') != 'FeatureCollection':
-                errors.append(f"{geojson_file.name}: Must be a FeatureCollection")
+            geojson_type = geojson_data.get('type')
+
+            # Accept both FeatureCollection and single Feature
+            if geojson_type == 'FeatureCollection':
+                if 'features' not in geojson_data:
+                    errors.append(f"{geojson_file.name}: Missing 'features' array")
+                    continue
+
+                if not isinstance(geojson_data['features'], list):
+                    errors.append(f"{geojson_file.name}: 'features' must be an array")
+                    continue
+
+                features = geojson_data['features']
+            elif geojson_type == 'Feature':
+                # Single feature - wrap in array for validation
+                features = [geojson_data]
+            else:
+                errors.append(f"{geojson_file.name}: Must be a FeatureCollection or Feature, got: {geojson_type}")
                 continue
 
-            if 'features' not in geojson_data:
-                errors.append(f"{geojson_file.name}: Missing 'features' array")
-                continue
-
-            if not isinstance(geojson_data['features'], list):
-                errors.append(f"{geojson_file.name}: 'features' must be an array")
-                continue
-
-            for i, feature in enumerate(geojson_data['features']):
+            for i, feature in enumerate(features):
                 if feature.get('type') != 'Feature':
                     errors.append(f"{geojson_file.name}: Feature {i} must have type 'Feature'")
 

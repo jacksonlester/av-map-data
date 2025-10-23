@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "title": "AV Map Data Schema",
+  "description": "Schema definition for autonomous vehicle service events",
+
+  "columns": [
+    {
+      "name": "date",
+      "index": 0,
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "required": true,
+      "description": "Event date in YYYY-MM-DD format"
+    },
+    {
+      "name": "event_type",
+      "index": 1,
+      "type": "string",
+      "required": true,
+      "enum": [
+        "service_testing",
+        "service_announced",
+        "service_created",
+        "service_ended",
+        "geometry_updated",
+        "vehicle_types_updated",
+        "supervision_updated",
+        "fares_policy_changed",
+        "access_policy_changed",
+        "service_model_updated",
+        "platform_updated",
+        "fleet_partner_changed"
+      ],
+      "description": "Type of event"
+    },
+    {
+      "name": "company",
+      "index": 2,
+      "type": "string",
+      "required": true,
+      "description": "Company operating the service"
+    },
+    {
+      "name": "city",
+      "index": 3,
+      "type": "string",
+      "required": true,
+      "description": "City where service operates"
+    },
+    {
+      "name": "geometry_file",
+      "index": 4,
+      "type": "string",
+      "required": false,
+      "pattern": "^(.*\\.geojson|(-?\\d+\\.\\d+,-?\\d+\\.\\d+)|)$",
+      "description": "GeoJSON filename or inline coordinates (lng,lat)"
+    },
+    {
+      "name": "vehicles",
+      "index": 5,
+      "type": "string",
+      "required": false,
+      "description": "Semicolon-separated list of vehicle types"
+    },
+    {
+      "name": "platform",
+      "index": 6,
+      "type": "string",
+      "required": false,
+      "description": "Semicolon-separated list of booking platforms"
+    },
+    {
+      "name": "fares",
+      "index": 7,
+      "type": "string",
+      "required": false,
+      "enum": ["Yes", "No", ""],
+      "description": "Whether service charges fares"
+    },
+    {
+      "name": "direct_booking",
+      "index": 8,
+      "type": "string",
+      "required": false,
+      "enum": ["Yes", "No", ""],
+      "description": "Whether direct booking is available"
+    },
+    {
+      "name": "service_model",
+      "index": 9,
+      "type": "string",
+      "required": false,
+      "enum": ["Flexible", "Stop-to-Stop", "Hub-to-Hub", "Fixed Route", ""],
+      "description": "Service delivery model"
+    },
+    {
+      "name": "supervision",
+      "index": 10,
+      "type": "string",
+      "required": false,
+      "enum": ["Autonomous", "Safety Driver", "Safety Attendant", ""],
+      "description": "Level of human supervision"
+    },
+    {
+      "name": "access",
+      "index": 11,
+      "type": "string",
+      "required": false,
+      "enum": ["Public", "Waitlist", "Employees Only", "Invite Only", "Announced", "Testing", ""],
+      "description": "Public access level"
+    },
+    {
+      "name": "fleet_partner",
+      "index": 12,
+      "type": "string",
+      "required": false,
+      "description": "Fleet management partner if applicable"
+    },
+    {
+      "name": "expected_launch",
+      "index": 13,
+      "type": "string",
+      "required": false,
+      "pattern": "^(\\d{4}|)$",
+      "description": "Expected launch year (only for announced/testing events)"
+    },
+    {
+      "name": "company_link",
+      "index": 14,
+      "type": "string",
+      "format": "uri",
+      "required": false,
+      "description": "Company website URL"
+    },
+    {
+      "name": "booking_platform_link",
+      "index": 15,
+      "type": "string",
+      "format": "uri",
+      "required": false,
+      "description": "Booking platform URL"
+    },
+    {
+      "name": "source_url",
+      "index": 16,
+      "type": "string",
+      "format": "uri",
+      "required": false,
+      "description": "Source URL for the event information"
+    },
+    {
+      "name": "notes",
+      "index": 17,
+      "type": "string",
+      "required": false,
+      "description": "Additional notes or description"
+    }
+  ],
+
+  "eventTypeRequirements": {
+    "service_created": {
+      "requiredFields": ["company", "city", "vehicles", "fares", "direct_booking", "service_model", "supervision", "access", "source_url"],
+      "description": "Initial service launch event"
+    },
+    "service_testing": {
+      "requiredFields": ["company", "city"],
+      "allowedFields": ["expected_launch"],
+      "description": "Service in testing phase"
+    },
+    "service_announced": {
+      "requiredFields": ["company", "city"],
+      "allowedFields": ["expected_launch"],
+      "description": "Service announcement before launch"
+    },
+    "service_ended": {
+      "requiredFields": ["company", "city"],
+      "forbiddenFields": ["vehicles", "platform", "fares", "direct_booking", "service_model", "supervision", "access"],
+      "description": "Service discontinuation"
+    },
+    "geometry_updated": {
+      "requiredFields": ["company", "city", "geometry_file"],
+      "description": "Service area boundary change"
+    },
+    "vehicle_types_updated": {
+      "requiredFields": ["company", "city", "vehicles"],
+      "description": "Vehicle fleet composition change"
+    },
+    "supervision_updated": {
+      "requiredFields": ["company", "city", "supervision"],
+      "description": "Human supervision level change"
+    },
+    "fares_policy_changed": {
+      "requiredFields": ["company", "city", "fares"],
+      "description": "Fare policy change"
+    },
+    "access_policy_changed": {
+      "requiredFields": ["company", "city", "access"],
+      "description": "Public access policy change"
+    },
+    "service_model_updated": {
+      "requiredFields": ["company", "city", "service_model"],
+      "description": "Service delivery model change"
+    },
+    "platform_updated": {
+      "requiredFields": ["company", "city", "platform"],
+      "description": "Booking platform change"
+    },
+    "fleet_partner_changed": {
+      "requiredFields": ["company", "city", "fleet_partner"],
+      "description": "Fleet management partner change"
+    }
+  },
+
+  "validationRules": {
+    "geometryFileNaming": {
+      "pattern": "^[a-z0-9-]+-[a-z0-9-]+-[a-z]+-\\d{1,2}-\\d{4}-boundary\\.geojson$",
+      "description": "Format: {company}-{city}-{month}-{day}-{year}-boundary.geojson"
+    },
+    "inlineCoordinates": {
+      "pattern": "^-?\\d+\\.\\d+,-?\\d+\\.\\d+$",
+      "description": "Format: longitude,latitude"
+    },
+    "urlFields": [14, 15, 16],
+    "dateRange": {
+      "min": "2017-04-25",
+      "max": "2030-12-31"
+    }
+  }
+}
