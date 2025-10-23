@@ -54,6 +54,10 @@ function validateCSV() {
     return false
   }
 
+  // STEP 1: Validate CSV structure (field count and column alignment)
+  console.log('🔍 Validating CSV structure...\n')
+  validateCSVStructure(records)
+
   // Group events by service
   const serviceEvents = new Map()
 
@@ -112,6 +116,69 @@ function validateCSV() {
   return true
 }
 
+function validateCSVStructure(records) {
+  // Expected column count (18 fields in CSV)
+  const EXPECTED_FIELD_COUNT = 18
+  const EXPECTED_COLUMNS = [
+    'date', 'event_type', 'company', 'city', 'geometry_file', 'vehicles', 'platform',
+    'fares', 'direct_booking', 'service_model', 'supervision', 'access', 'fleet_partner',
+    'expected_launch', 'company_link', 'booking_platform_link', 'source_url', 'notes'
+  ]
+
+  records.forEach((row, index) => {
+    const lineNum = index + 2 // +2 for header row and 0-indexing
+    const fieldCount = Object.keys(row).length
+    const eventType = row.event_type?.trim()
+
+    // Check 1: Field count must be exactly 18
+    if (fieldCount !== EXPECTED_FIELD_COUNT) {
+      error(`Line ${lineNum}: Has ${fieldCount} fields, expected ${EXPECTED_FIELD_COUNT}`)
+    }
+
+    // Check 2: Validate URL fields (company_link, booking_platform_link, source_url)
+    const companyLink = row.company_link?.trim()
+    const bookingLink = row.booking_platform_link?.trim()
+    const sourceUrl = row.source_url?.trim()
+
+    // company_link and booking_platform_link should always be URLs or empty
+    if (companyLink && !companyLink.startsWith('http://') && !companyLink.startsWith('https://')) {
+      error(`Line ${lineNum}: company_link should be a URL or empty, found: ${companyLink.substring(0, 60)}`)
+    }
+
+    if (bookingLink && !bookingLink.startsWith('http://') && !bookingLink.startsWith('https://')) {
+      error(`Line ${lineNum}: booking_platform_link should be a URL or empty, found: ${bookingLink.substring(0, 60)}`)
+    }
+
+    // source_url should be a URL for service_created, service_announced, service_testing
+    // For update events, it's optional and can contain notes if no source URL is available
+    const isCreateOrAnnounce = ['service_created', 'service_announced', 'service_testing'].includes(eventType)
+    if (isCreateOrAnnounce && sourceUrl && !sourceUrl.startsWith('http://') && !sourceUrl.startsWith('https://')) {
+      warn(`Line ${lineNum}: source_url should be a URL for ${eventType} events, found: ${sourceUrl.substring(0, 60)}`)
+    }
+
+    // Check 3: Notes field should NOT be a URL
+    const notes = row.notes?.trim()
+    if (notes && (notes.startsWith('http://') || notes.startsWith('https://'))) {
+      error(`Line ${lineNum}: notes field contains a URL - this indicates column misalignment! Notes should be descriptive text, not URLs.`)
+    }
+
+    // Check 4: expected_launch validation
+    const expectedLaunch = row.expected_launch?.trim()
+
+    if (eventType && !['service_announced', 'service_testing'].includes(eventType)) {
+      // For non-announced/testing events, expected_launch should be empty
+      if (expectedLaunch) {
+        warn(`Line ${lineNum}: expected_launch should be empty for event type '${eventType}' (only announced/testing events should have this)`)
+      }
+    } else if (eventType && ['service_announced', 'service_testing'].includes(eventType) && expectedLaunch) {
+      // For announced/testing events, if expected_launch exists, it should be a date/year format, not a URL
+      if (expectedLaunch.startsWith('http://') || expectedLaunch.startsWith('https://')) {
+        error(`Line ${lineNum}: expected_launch contains a URL - this indicates column misalignment! Expected a year or date like "2026" or "Q2 2026"`)
+      }
+    }
+  })
+}
+
 function validateServiceTimeline(serviceId, events) {
   console.log(`\n🔍 Validating ${serviceId}...`)
 
@@ -125,9 +192,9 @@ function validateServiceTimeline(serviceId, events) {
   events.forEach((event, index) => {
     const { lineNum, event_type } = event
 
-    // Check 1: First event must be service_created
-    if (index === 0 && event_type !== 'service_created') {
-      error(`Line ${lineNum}: First event for ${serviceId} must be 'service_created', found '${event_type}'`)
+    // Check 1: First event must be service_created, service_testing, or service_announced
+    if (index === 0 && !['service_created', 'service_testing', 'service_announced'].includes(event_type)) {
+      error(`Line ${lineNum}: First event for ${serviceId} must be 'service_created', 'service_testing', or 'service_announced', found '${event_type}'`)
       return
     }
 
@@ -256,6 +323,43 @@ function validateServiceTimeline(serviceId, events) {
       }
     }
 
+    else if (event_type === 'service_testing') {
+      if (hasServiceCreated) {
+        error(`Line ${lineNum}: service_testing cannot occur after service_created for ${serviceId}`)
+      } else {
+        info(`  ✓ Line ${lineNum}: service testing event recorded`)
+        currentState.status = 'testing'
+        // Update state with any provided fields
+        if (event.vehicles) currentState.vehicles = event.vehicles.trim()
+        if (event.platform) currentState.platform = event.platform.trim()
+        if (event.supervision) currentState.supervision = event.supervision.trim()
+        if (event.geometry_file) {
+          currentState.geometry_file = event.geometry_file.trim()
+          validateGeometryFilename(lineNum, event.geometry_file, event.date, serviceId)
+        }
+      }
+    }
+
+    else if (event_type === 'service_announced') {
+      if (hasServiceCreated) {
+        error(`Line ${lineNum}: service_announced cannot occur after service_created for ${serviceId}`)
+      } else {
+        info(`  ✓ Line ${lineNum}: service announcement recorded`)
+        currentState.status = 'announced'
+        // Update state with any provided fields
+        if (event.vehicles) currentState.vehicles = event.vehicles.trim()
+        if (event.platform) currentState.platform = event.platform.trim()
+        if (event.supervision) currentState.supervision = event.supervision.trim()
+        if (event.fares) currentState.fares = event.fares.trim()
+        if (event.access) currentState.access = event.access.trim()
+        if (event.service_model) currentState.service_model = event.service_model.trim()
+        if (event.geometry_file) {
+          currentState.geometry_file = event.geometry_file.trim()
+          validateGeometryFilename(lineNum, event.geometry_file, event.date, serviceId)
+        }
+      }
+    }
+
     else if (event_type === 'service_ended') {
       info(`  ✓ Line ${lineNum}: service ended`)
     }
@@ -265,14 +369,19 @@ function validateServiceTimeline(serviceId, events) {
     }
   })
 
-  if (!hasServiceCreated) {
-    error(`Service ${serviceId} has no service_created event`)
-  }
+  // Note: We don't require service_created anymore since services can be in testing/announced status
+  // without being fully operational yet
 }
 
 function validateGeometryFilename(lineNum, filename, eventDate, serviceId) {
+  // Check if it's inline coordinates (lng,lat format)
+  if (/^-?\d+\.?\d*,-?\d+\.?\d*$/.test(filename)) {
+    info(`  ✓ Line ${lineNum}: Using inline coordinates: ${filename}`)
+    return
+  }
+
   if (!filename.endsWith('.geojson')) {
-    error(`Line ${lineNum}: Geometry file must end with .geojson: ${filename}`)
+    error(`Line ${lineNum}: Geometry file must end with .geojson or be inline coordinates (lng,lat): ${filename}`)
     return
   }
 

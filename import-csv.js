@@ -55,6 +55,7 @@ const FIELD_MAPPING = {
   'supervision': 'supervision',
   'access': 'access',
   'fleet_partner': 'fleet_partner',
+  'expected_launch': 'expected_launch',
   'company_link': 'company_link',
   'booking_platform_link': 'booking_platform_link',
   'source_url': 'event_url',
@@ -92,6 +93,8 @@ function csvRowToEvent(row) {
   ].includes(row.event_type)
 
   const isServiceCreated = row.event_type === 'service_created'
+  const isServiceTesting = row.event_type === 'service_testing'
+  const isServiceAnnounced = row.event_type === 'service_announced'
 
   // Map all CSV fields to event_data
   Object.keys(row).forEach(csvKey => {
@@ -100,18 +103,28 @@ function csvRowToEvent(row) {
 
     const dbKey = FIELD_MAPPING[csvKey]
     if (dbKey && !['event_date', 'event_type'].includes(dbKey)) {
-      // Convert geometry_file to geometry_name format (without .geojson extension)
+      // Convert geometry_file to geometry_name format
       if (csvKey === 'geometry_file') {
-        eventData.geometry_name = value.replace(/\.geojson$/, '')
+        // Check if it's inline coordinates (lng,lat format)
+        if (/^-?\d+\.?\d*,-?\d+\.?\d*$/.test(value)) {
+          // Store inline coordinates directly as geometry_name
+          eventData.geometry_name = value
+        } else {
+          // Remove .geojson extension from filename
+          eventData.geometry_name = value.replace(/\.geojson$/, '')
+        }
       }
-      // For service_created, include all fields
+      // For service_created, service_testing, service_announced include all fields
       // For update events, skip the field being updated (will be added as new_* below)
       // Always include company, city, notes, and source_url
       else if (isServiceCreated ||
+               isServiceTesting ||
+               isServiceAnnounced ||
                csvKey === 'company' ||
                csvKey === 'city' ||
                csvKey === 'notes' ||
-               csvKey === 'source_url') {
+               csvKey === 'source_url' ||
+               csvKey === 'expected_launch') {
         eventData[dbKey] = value
       }
       // For update events, only include fields that aren't being updated
