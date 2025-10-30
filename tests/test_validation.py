@@ -89,7 +89,7 @@ def test_event_types(csv_file):
         'service_created', 'service_ended', 'geometry_updated',
         'vehicle_types_updated', 'supervision_updated', 'fares_policy_changed',
         'access_policy_changed', 'service_model_updated', 'platform_updated', 'fleet_partner_changed',
-        'service_testing', 'service_announced'
+        'direct_booking_updated', 'service_testing', 'service_announced'
     ]
     errors = []
 
