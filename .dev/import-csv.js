@@ -89,7 +89,8 @@ function csvRowToEvent(row) {
     'vehicle_types_updated',
     'fleet_partner_changed',
     'service_model_updated',
-    'geometry_updated'
+    'geometry_updated',
+    'direct_booking_updated'
   ].includes(row.event_type)
 
   const isServiceCreated = row.event_type === 'service_created'
@@ -136,7 +137,8 @@ function csvRowToEvent(row) {
           (row.event_type === 'platform_updated' && csvKey === 'platform') ||
           (row.event_type === 'vehicle_types_updated' && csvKey === 'vehicles') ||
           (row.event_type === 'fleet_partner_changed' && csvKey === 'fleet_partner') ||
-          (row.event_type === 'service_model_updated' && csvKey === 'service_model')
+          (row.event_type === 'service_model_updated' && csvKey === 'service_model') ||
+          (row.event_type === 'direct_booking_updated' && csvKey === 'direct_booking')
 
         if (!isFieldBeingUpdated) {
           eventData[dbKey] = value
@@ -160,6 +162,8 @@ function csvRowToEvent(row) {
     eventData.new_fleet_partner = row.fleet_partner
   } else if (row.event_type === 'service_model_updated' && row.service_model) {
     eventData.new_service_model = row.service_model
+  } else if (row.event_type === 'direct_booking_updated' && row.direct_booking) {
+    eventData.new_direct_booking = row.direct_booking
   }
 
   return {
