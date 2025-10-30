@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 import fs from 'fs'
 import { parse } from 'csv-parse/sync'
+import readline from 'readline'
 
 // Load .env file
 if (!process.env.GITHUB_ACTIONS) {
@@ -34,9 +35,34 @@ const isStaging = process.env.STAGING === 'true'
 const environment = isStaging ? 'staging' : 'production'
 const eventsTable = isStaging ? 'av_events_staging' : 'av_events'
 
-console.log(`🌍 Environment: ${environment.toUpperCase()}`)
-console.log(`📋 Events table: ${eventsTable}`)
-console.log('')
+console.log('\n' + '='.repeat(70))
+console.log(`🌍 ENVIRONMENT: ${environment.toUpperCase()}`)
+console.log('='.repeat(70))
+console.log(`📋 Events table: ${eventsTable}\n`)
+
+// Production safety check
+if (!isStaging && !process.env.GITHUB_ACTIONS) {
+  console.log('⚠️  WARNING: You are about to modify PRODUCTION data!')
+  console.log('This will import events to the production database.')
+  console.log('Make sure you have tested in STAGING first!\n')
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  await new Promise((resolve) => {
+    rl.question('Type "PRODUCTION" to confirm (or Ctrl+C to cancel): ', (answer) => {
+      rl.close()
+      if (answer.trim() !== 'PRODUCTION') {
+        console.log('\n❌ Import cancelled - confirmation did not match')
+        process.exit(0)
+      }
+      console.log('')
+      resolve()
+    })
+  })
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 

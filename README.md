@@ -90,15 +90,46 @@ node copy-geometries.js
 STAGING=true node rebuild-cache.js
 ```
 
-### Manual Cache Rebuilds
+### Data Update Workflow
+
+#### 1. Import Events from CSV
+
+After updating `events.csv`, import the changes to the database:
+
+```bash
+# Import to staging (ALWAYS START HERE)
+cd .dev
+STAGING=true node import-csv.js
+
+# Import to production (only after staging verification)
+cd .dev
+node import-csv.js  # Will prompt for confirmation
+```
+
+The production import includes a safety prompt requiring you to type "PRODUCTION" to confirm.
+
+#### 2. Rebuild Cache
+
+After importing events, rebuild the cache to generate the frontend data:
 
 ```bash
 # Rebuild staging cache
+cd .dev
 STAGING=true node rebuild-cache.js
 
-# Rebuild production cache
+# Verify the changes in staging environment!
+# Check https://staging.avmap.io to confirm everything looks correct
+
+# Rebuild production cache (only after staging verification)
+cd .dev
 node rebuild-cache.js
 ```
+
+**Important:** The cache rebuild uses the Node.js script at `.dev/rebuild-cache.js`. The Supabase edge function has been removed to avoid confusion - always use the Node script.
+
+#### 3. Automated Rebuilds
+
+GitHub Actions automatically rebuilds the cache when changes are pushed to `staging` or `main` branches, so manual rebuilds are only needed when testing locally.
 
 ## License
 
