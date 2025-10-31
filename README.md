@@ -1,6 +1,6 @@
 # AV Map Data
 
-Open dataset tracking autonomous vehicle deployments in the United States. Powers [avmap.io](https://avmap.io).
+Open dataset tracking autonomous vehicle deployments around the world. Powers [avmap.io](https://avmap.io).
 
 ## What's here
 
@@ -12,8 +12,8 @@ This uses event sourcing: create events capture full service details, updates on
 ## Current coverage
 
 - 2017 to current timeline
-- Waymo, Tesla, May Mobility, Zoox, and others
-- Major US cities with active or historical deployments
+- Waymo, Tesla, May Mobility, Zoox, Apollo Go, Cruise, Nuro, Oxa, Wayve, WeRide, and others
+- Global cities with active or historical AV deployments
 
 ## Quick start
 
