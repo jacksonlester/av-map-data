@@ -59,8 +59,8 @@ Each row in `events.csv` represents **one change** to a service:
 | 12| `access`                 | Access policy              | `Public` / `Waitlist`                        | If applicable |
 | 13| `fleet_partner`          | Fleet partnerships         | `Moove`                                      | If applicable |
 | 14| `expected_launch`        | Expected launch timeframe  | `2026`, `Q2 2026`, `Late 2025`               | If applicable |
-| 15| `company_link`           | Company website/page       | `https://waymo.com/`                         | Preferred     |
-| 16| `booking_platform_link`  | Booking platform link      | `https://www.uber.com/...`                   | Preferred     |
+| 15| `company_link`           | Company website/page       | `https://waymo.com/`                         | If applicable |
+| 16| `booking_platform_link`  | Booking platform link      | `https://www.uber.com/...`                   | If applicable |
 | 17| `source_url`             | Source article/announcement| `https://techcrunch.com/...`                 | Preferred     |
 | 18| `notes`                  | Additional context (text)  | `Initial service launch`                     | Preferred     |
 
@@ -81,6 +81,7 @@ Each row in `events.csv` represents **one change** to a service:
 - URLs: Go in columns 15-17 (`company_link`, `booking_platform_link`, `source_url`)
 - Notes: Text only in column 18, never URLs
 - Expected launch: Only fill column 14 for `service_announced` or `service_testing` events
+- Company/booking links: Always include `company_link` (column 15) for `service_testing`, `service_announced`, and `service_created` events. Only include `booking_platform_link` (column 16) if there's a separate booking platform (different from the company) or a fleet partner with their own booking page. For `platform_updated`, include `booking_platform_link`. Other update events should leave both empty
 
 ### Validation (optional):
 
