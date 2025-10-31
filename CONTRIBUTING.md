@@ -6,7 +6,7 @@ This dataset tracks autonomous vehicle deployments and powers [avmap.io](https:/
 
 **Most common contribution:** Adding a new service announcement or launch
 
-1. Add one row to `events.csv` with all non-empty fields quoted
+1. Add one row to `events.csv` (use Excel or a text editor)
 2. Submit PR to `staging` branch (not `main`)
 3. Automated tests will check your formatting
 
@@ -15,10 +15,10 @@ See [Adding a new service](#adding-a-new-service) for examples.
 ### Editing the CSV
 
 You can edit `events.csv` with:
-- **Excel/Google Sheets:** Open the file, add your row, save as CSV (make sure to choose "CSV UTF-8" format)
-- **Text editor:** Any text editor works - just make sure to quote fields with content and separate with commas
+- **Excel/Google Sheets:** Open the file, add your row, save as "CSV UTF-8" - Excel handles the formatting automatically
+- **Text editor:** Any text editor works - follow the same format as existing rows (fields separated by commas)
 
-**Excel tip:** When saving, Excel will quote fields automatically if they contain commas. Just make sure all your text fields have content or are truly empty.
+**Excel tip:** When saving as CSV, choose "CSV UTF-8" format. Excel will automatically quote fields that need it (like URLs or text with commas). Just fill in your cells normally and let Excel handle the formatting.
 
 ## ⚠️ Important: Submit PRs to `staging` branch
 
@@ -67,9 +67,9 @@ Each row in `events.csv` represents **one change** to a service:
 ## CSV formatting rules
 
 ### Three critical rules:
-1. **All non-empty fields must be quoted** (including the header row)
-2. **Every row must have exactly 18 fields** (empty fields are just commas with nothing between)
-3. **Quote everything that has content** - text, URLs, and numbers like "Yes" and "No"
+1. **Every row must have exactly 18 fields** (empty fields are just commas with nothing between)
+2. **Excel/Google Sheets will handle quoting automatically** - don't worry about adding quotes manually
+3. **Save as "CSV UTF-8"** format when exporting from Excel
 
 **Example row:**
 ```csv
@@ -77,11 +77,12 @@ Each row in `events.csv` represents **one change** to a service:
 ```
 
 ### Important details:
-- Empty fields: Just use commas with nothing between (e.g., `,,`)
+- Empty fields: Leave cells blank in Excel - they'll export as commas with nothing between (e.g., `,,`)
 - URLs: Go in columns 15-17 (`company_link`, `booking_platform_link`, `source_url`)
 - Notes: Text only in column 18, never URLs
 - Expected launch: Only fill column 14 for `service_announced` or `service_testing` events
 - Company/booking links: Always include `company_link` (column 15) for `service_testing`, `service_announced`, and `service_created` events. Only include `booking_platform_link` (column 16) if there's a separate booking platform (different from the company) or a fleet partner with their own booking page. For `platform_updated`, include `booking_platform_link`. Other update events should leave both empty
+- Quoting: Don't worry about quotes - Excel automatically adds them when saving as CSV
 
 ### Validation (optional):
 
