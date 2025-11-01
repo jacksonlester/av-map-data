@@ -9,7 +9,7 @@ This dataset tracks autonomous vehicle deployments and powers [avmap.io](https:/
 **Prefer to email your updates?** Send CSV or changes to [jackson@avmap.io](mailto:jackson@avmap.io) - see [below](#questions-or-simpler-contribution-method) for details.
 
 **Contributing via GitHub:**
-1. Add one row to `events.csv` (use Excel or a text editor)
+1. Edit `events.csv` to add your data (use Excel or a text editor)
 2. Submit a pull request
 3. We'll review and merge your changes
 
