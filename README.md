@@ -4,7 +4,7 @@ Open dataset tracking autonomous vehicle deployments around the world. Powers [a
 
 ## What's here
 
-**events.csv** - Timeline of AV service changes since 2017 (launches, expansions, shutdowns, policy changes)
+**events.csv** - Timeline of AV service changes since 2017 (testing, announcements, launches, expansions, shutdowns, policy changes)
 **geometries/** - GeoJSON service area boundaries showing how coverage evolved
 
 This uses event sourcing: create events capture full service details, updates only record what changed. Every change has a source.
@@ -27,14 +27,15 @@ Load the GeoJSON files into any mapping tool. Parse the CSV for historical analy
 
 ## Contributing
 
-We welcome contributions! To submit changes:
+We welcome contributions! Two easy ways to help:
 
+**Email updates:** Send CSV changes or info to [jackson@avmap.io](mailto:jackson@avmap.io)
+
+**GitHub PR:**
 1. Fork this repository
-2. Create a feature branch from `main`
-3. Make your changes to `events.csv` and/or add geometry files
-4. Run validation: `python3 scripts/validate.py`
-5. Submit a pull request to the `staging` branch (changes are tested there before production)
-6. Wait for review - a maintainer will test your changes and merge if approved
+2. Edit `events.csv` (Excel or text editor work fine)
+3. Submit a pull request to the `staging` branch
+4. We'll review and merge
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed format specs and examples.
 
@@ -46,11 +47,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed format specs and examples.
 
 ## Review Process
 
-After you submit a pull request:
-1. Automated tests will run to validate your data format
-2. A maintainer will review and test your changes
-3. If approved, your PR will be merged to `staging`
-4. Changes will be promoted to production after internal testing
+After you submit:
+1. We'll check the data format (automated tests help catch issues)
+2. Review and test your changes
+3. Merge to `staging` for testing
+4. Promote to production once verified
 
 ## For Maintainers Only
 
