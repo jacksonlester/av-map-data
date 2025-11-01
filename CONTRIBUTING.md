@@ -6,9 +6,12 @@ This dataset tracks autonomous vehicle deployments and powers [avmap.io](https:/
 
 **Most common contribution:** Adding a new service announcement or launch
 
+**Prefer to email your updates?** Send CSV or changes to [jackson@avmap.io](mailto:jackson@avmap.io) - see [below](#questions-or-simpler-contribution-method) for details.
+
+**Contributing via GitHub:**
 1. Add one row to `events.csv` (use Excel or a text editor)
-2. Submit PR to `staging` branch (not `main`)
-3. Automated tests will check your formatting
+2. Submit a pull request
+3. We'll review and merge your changes
 
 See [Adding a new service](#adding-a-new-service) for examples.
 
@@ -16,20 +19,23 @@ See [Adding a new service](#adding-a-new-service) for examples.
 
 You can edit `events.csv` with:
 - **Excel/Google Sheets:** Open the file, add your row, save as "CSV UTF-8" - Excel handles the formatting automatically
-- **Text editor:** Any text editor works - follow the same format as existing rows (fields separated by commas)
+- **Text editor:** Any text editor works - just make sure to quote any field that contains commas, quotes, newlines, or semicolons (e.g., city names like `"Grand Rapids, MI"` or multi-value fields like `"Waymo;Uber"`). When in doubt, quote it
 
 **Excel tip:** When saving as CSV, choose "CSV UTF-8" format. Excel will automatically quote fields that need it (like URLs or text with commas). Just fill in your cells normally and let Excel handle the formatting.
 
-## ⚠️ Important: Submit PRs to `staging` branch
+## GitHub workflow (optional - you can email instead!)
 
-**All pull requests should target the `staging` branch, not `main`.** This allows us to test your changes on the staging site before promoting to production.
+**Don't want to deal with GitHub?** Skip this section and just [email your updates](#questions-or-simpler-contribution-method) - we're happy to handle the technical stuff for you.
+
+**For those comfortable with GitHub:**
+
+Pull requests should target the `staging` branch (not `main`) so we can test before going live:
 
 1. Fork this repository
-2. Create a feature branch from `main` (the stable production branch)
+2. Create a feature branch from `main`
 3. Make your changes
 4. Submit a PR to the `staging` branch
-5. Your changes will be tested on the staging environment
-6. Once verified, they'll be promoted to production
+5. We'll test your changes and merge if everything looks good
 
 ## How it works
 
@@ -66,32 +72,24 @@ Each row in `events.csv` represents **one change** to a service:
 
 ## CSV formatting rules
 
-### Three critical rules:
-1. **Every row must have exactly 18 fields** (empty fields are just commas with nothing between)
-2. **Excel/Google Sheets will handle quoting automatically** - don't worry about adding quotes manually
-3. **Save as "CSV UTF-8"** format when exporting from Excel
+### Simple rules:
+1. **Fill in 18 columns** (leave blank cells for missing data)
+2. **Using Excel?** It handles formatting automatically - just save as "CSV UTF-8"
+3. **Using a text editor?** Put quotes around any field with commas or semicolons
 
 **Example row:**
 ```csv
-"2025-09-10","service_created","Zoox","Las Vegas","zoox-las-vegas-boundary.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/","https://zoox.com/ride","https://techcrunch.com/2025/09/10/zoox-las-vegas-launch","Zoox Las Vegas service"
+"2025-09-10","service_created","Zoox","Las Vegas","zoox-las-vegas-boundary.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/",,"https://techcrunch.com/2025/09/10/zoox-las-vegas-launch","Zoox Las Vegas service"
 ```
 
-### Important details:
-- Empty fields: Leave cells blank in Excel - they'll export as commas with nothing between (e.g., `,,`)
-- URLs: Go in columns 15-17 (`company_link`, `booking_platform_link`, `source_url`)
-- Notes: Text only in column 18, never URLs
-- Expected launch: Only fill column 14 for `service_announced` or `service_testing` events
-- Company/booking links: Always include `company_link` (column 15) for `service_testing`, `service_announced`, and `service_created` events. Only include `booking_platform_link` (column 16) if there's a separate booking platform (different from the company) or a fleet partner with their own booking page. For `platform_updated`, include `booking_platform_link`. Other update events should leave both empty
-- Quoting: Don't worry about quotes - Excel automatically adds them when saving as CSV
+### Tips:
+- Leave blank cells for data you don't have - that's okay!
+- Put URLs in columns 15-17, notes (text only) in column 18
+- Include `company_link` (15) for announcements or launches
+- Only include `booking_platform_link` (16) when the platform differs from the company (e.g., Waymo on Uber) or there's a fleet partner
+- Don't worry about formatting if using Excel - it handles it automatically
 
-### Validation (optional):
-
-If you have Node.js installed, you can test your changes locally:
-```bash
-node validate-csv.js
-```
-
-Don't worry if you can't run this - GitHub Actions will automatically validate your PR.
+**Don't worry about validation** - we'll check your formatting automatically when you submit.
 
 ## Adding a new service
 
@@ -106,14 +104,14 @@ For `service_testing` or `service_announced` events, only basic info required:
 Required fields (with column numbers):
 - `date` (1), `event_type` (2), `company` (3), `city` (4), `source_url` (17)
 
-All other fields can be empty (just commas) but must still be present (18 total fields). Add details as they become available using update events.
+All other fields can be empty but the row needs all 18 columns (just use commas for blank cells). You can add more details later using update events.
 
 ### Active service launch
 
 For `service_created` events, fill in all service attributes:
 
 ```csv
-"2025-09-10","service_created","Zoox","Las Vegas","zoox-las-vegas-september-10-2025-boundary.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/","https://zoox.com/ride","https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public","Zoox Las Vegas service"
+"2025-09-10","service_created","Zoox","Las Vegas","zoox-las-vegas-september-10-2025-boundary.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/",,"https://techcrunch.com/2025/09/10/zoox-opens-its-las-vegas-robotaxi-service-to-the-public","Zoox Las Vegas service"
 ```
 
 Required fields (with column numbers):
@@ -215,7 +213,7 @@ Services progress: testing → announced → active (both testing and announceme
 
 **Direct launch (no announcement):**
 ```csv
-"2025-11-10","service_created","Zoox","Austin","zoox-austin-november-2025.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/","https://zoox.com/ride","https://techcrunch.com/2025/11/10/zoox-austin-launch","Zoox launches in Austin"
+"2025-11-10","service_created","Zoox","Austin","zoox-austin-november-2025.geojson","Zoox Robotaxi","Zoox","No","Yes","Hub-to-Hub","Autonomous","Public",,,"https://zoox.com/",,"https://techcrunch.com/2025/11/10/zoox-austin-launch","Zoox launches in Austin"
 ```
 
 **Full lifecycle (testing → announcement → launch → updates):**
@@ -228,7 +226,7 @@ Services progress: testing → announced → active (both testing and announceme
 "2026-09-01","access_policy_changed","Wayve","London",,,,,,,"Public",,,,,,"https://wayve.ai/blog/public-launch","Opened to all users, removed waitlist"
 ```
 
-Note: `service_testing` can precede announcement if testing is spotted first. All examples show complete 18-field format with all fields quoted.
+Note: `service_testing` can precede announcement if testing is spotted first. All examples show complete 18-field format.
 
 ## Field values
 
@@ -301,9 +299,9 @@ Once you have a GeoJSON file:
 
 **Note:** Both `Polygon` and `MultiPolygon` geometry types work. Tools like geojson.io will create the correct format automatically.
 
-## Validation
+## Validation (Optional)
 
-Run tests before submitting:
+Want to test your changes locally before submitting? Run:
 
 ```bash
 pip install -r requirements-dev.txt
@@ -316,22 +314,17 @@ Or use the wrapper script:
 python3 scripts/validate.py
 ```
 
-Pull requests run tests automatically via GitHub Actions.
+**Don't worry if you skip this** - pull requests run tests automatically via GitHub Actions, and we'll help fix any issues.
 
-## Schema changes
+## Schema changes (Advanced)
 
-Schema is defined in `.dev/schema.json`. To add columns/event types:
+Schema is defined in [.dev/schema.json](.dev/schema.json). To add columns/event types:
 1. Edit `.dev/schema.json` (add definitions), bump version
 2. Run `python3 scripts/check_schema_version.py`
 3. Tests auto-update from schema - no manual test changes needed
 
-## Submission
+## Questions or simpler contribution method?
 
-1. Fork this repository and create a feature branch from `main`
-2. Make your changes
-3. Run tests (`python3 scripts/check_schema_version.py && pytest tests/ -v`)
-4. Push your branch and create a pull request to the `staging` branch
-
-## Questions?
-
-Check existing [issues](../../issues) or open a new one.
+- **Not comfortable with GitHub?** Email your CSV updates to [jackson@avmap.io](mailto:jackson@avmap.io) - just attach your updated events.csv and any GeoJSON boundary files, or describe the changes you'd like to see
+- **Want to suggest new data types?** (autonomous trucks, fleet size, etc.) - open an [issue](../../issues) or email [jackson@avmap.io](mailto:jackson@avmap.io) to discuss! The dataset can evolve based on community needs
+- **Have questions?** Check existing [issues](../../issues) or open a new one
