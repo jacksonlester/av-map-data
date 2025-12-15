@@ -1,5 +1,6 @@
 # Claude Code instructions (local only)
 .claude-instructions
+CLAUDE.md
 
 # Node modules
 node_modules/
