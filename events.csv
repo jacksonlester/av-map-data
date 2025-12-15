@@ -152,3 +152,4 @@ date,event_type,company,city,geometry_file,vehicles,platform,fares,direct_bookin
 2025-12-04,supervision_updated,Waymo,Houston,,,,,,,Autonomous,,,,,,,https://x.com/Waymo/status/1996595348207231085?s=20
 2025-12-10,supervision_updated,Waymo,San Antonio,"-98.4946,29.4241",,,,,,Autonomous,,,,,,https://x.com/Waymo/status/1998875372163600672?s=20,Waymo announcement about autonomous testing in San Antonio
 2025-12-11,supervision_updated,Waymo,Orlando,"-81.379039,28.54211",,,,,,Autonomous,,,,,,https://x.com/Waymo/status/1999237761434345487?s=20,Orlando becomes autonomous for Waymo
+2025-12-15,service_created,Avride,"Arlington, TX","-97.10807,32.735687",Ford Mustang Mach-E,Lyft,Yes,Yes,Hub-to-Hub,Autonomous,Waitlist,Beep,,,,https://www.fakeurl.com,Don't use this one!
