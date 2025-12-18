@@ -3,8 +3,11 @@
 /**
  * Sync Geometries Table with Storage Bucket
  *
- * This script ensures all GeoJSON files in the storage bucket are registered
- * in the service_area_geometries table with proper metadata.
+ * This script ensures the geometries table matches the storage bucket exactly:
+ * - Inserts new entries for files that exist in bucket but not in table
+ * - Updates entries with incorrect storage_url (e.g., pointing to wrong bucket)
+ * - Removes orphaned entries for files that no longer exist in bucket
+ * - Removes orphaned files from bucket that don't exist locally
  *
  * Usage:
  *   STAGING=true node sync-geometries-table.js  (syncs staging)
@@ -13,6 +16,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
+import { readdirSync } from 'fs'
 
 // Load .env file
 if (!process.env.GITHUB_ACTIONS) {
@@ -69,52 +73,156 @@ async function syncGeometriesTable() {
   const existingNames = new Set(existingEntries?.map(e => e.geometry_name) || [])
   console.log(`   Found ${existingNames.size} existing entries in table\n`)
 
-  // Step 3: Insert missing entries
+  // Step 3: Upsert entries (insert new, update existing with correct URLs)
   console.log('📝 Syncing table with storage...')
 
   let inserted = 0
-  let skipped = 0
+  let updated = 0
+  let unchanged = 0
   let failed = 0
+
+  // Get full existing entries to compare URLs
+  const { data: fullExistingEntries } = await supabase
+    .from(table)
+    .select('geometry_name, storage_url')
+
+  const existingUrlMap = new Map(
+    (fullExistingEntries || []).map(e => [e.geometry_name, e.storage_url])
+  )
 
   for (const file of geojsonFiles) {
     const geometryName = file.name.replace('.geojson', '')
 
-    if (existingNames.has(geometryName)) {
-      console.log(`   ⏭️  ${geometryName} (already exists)`)
-      skipped++
-      continue
-    }
-
-    // Create public URL
+    // Create correct public URL for this environment's bucket
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(file.name)
 
-    // Insert into table
-    const { error: insertError } = await supabase
-      .from(table)
-      .insert({
-        geometry_name: geometryName,
-        display_name: geometryName.replace(/-/g, ' '),
-        storage_url: publicUrl,
-        file_size: file.metadata?.size || 0,
-        created_at: file.created_at || new Date().toISOString()
-      })
+    const existingUrl = existingUrlMap.get(geometryName)
 
-    if (insertError) {
-      console.error(`   ❌ ${geometryName}: ${insertError.message}`)
-      failed++
+    if (existingUrl === publicUrl) {
+      // URL is already correct, skip
+      unchanged++
+      continue
+    }
+
+    if (existingNames.has(geometryName)) {
+      // Entry exists but URL is wrong - update it
+      const { error: updateError } = await supabase
+        .from(table)
+        .update({
+          storage_url: publicUrl,
+          file_size: file.metadata?.size || 0
+        })
+        .eq('geometry_name', geometryName)
+
+      if (updateError) {
+        console.error(`   ❌ ${geometryName}: ${updateError.message}`)
+        failed++
+      } else {
+        console.log(`   🔄 ${geometryName} (updated URL)`)
+        updated++
+      }
     } else {
-      console.log(`   ✅ ${geometryName} (inserted)`)
-      inserted++
+      // New entry - insert it
+      const { error: insertError } = await supabase
+        .from(table)
+        .insert({
+          geometry_name: geometryName,
+          display_name: geometryName.replace(/-/g, ' '),
+          storage_url: publicUrl,
+          file_size: file.metadata?.size || 0,
+          created_at: file.created_at || new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.error(`   ❌ ${geometryName}: ${insertError.message}`)
+        failed++
+      } else {
+        console.log(`   ✅ ${geometryName} (inserted)`)
+        inserted++
+      }
+    }
+  }
+
+  // Step 4: Read local geometry files to determine what should exist
+  console.log('\n📂 Reading local geometry files...')
+  let localFiles
+  try {
+    localFiles = readdirSync('./geometries')
+      .filter(f => f.endsWith('.geojson'))
+      .map(f => f.replace('.geojson', ''))
+  } catch (err) {
+    console.log('   ⚠️  Could not read local geometries folder (running in CI?)')
+    localFiles = null
+  }
+
+  const localFileSet = localFiles ? new Set(localFiles) : null
+  if (localFileSet) {
+    console.log(`   Found ${localFileSet.size} local geometry files`)
+  }
+
+  // Step 5: Clean up orphans (in table but not in local files)
+  let deletedFromTable = 0
+  let deletedFromBucket = 0
+
+  if (localFileSet) {
+    console.log('\n🧹 Cleaning up orphaned entries...')
+
+    // Find orphans in table
+    const bucketFileNames = new Set(geojsonFiles.map(f => f.name.replace('.geojson', '')))
+    const tableOrphans = [...existingNames].filter(name => !localFileSet.has(name))
+    const bucketOrphans = [...bucketFileNames].filter(name => !localFileSet.has(name))
+
+    // Delete orphans from table
+    if (tableOrphans.length > 0) {
+      console.log(`   Found ${tableOrphans.length} orphaned table entries`)
+      const { error: deleteError } = await supabase
+        .from(table)
+        .delete()
+        .in('geometry_name', tableOrphans)
+
+      if (deleteError) {
+        console.error(`   ❌ Error deleting from table: ${deleteError.message}`)
+      } else {
+        deletedFromTable = tableOrphans.length
+        for (const orphan of tableOrphans) {
+          console.log(`   🗑️  ${orphan} (removed from table)`)
+        }
+      }
+    }
+
+    // Delete orphans from bucket
+    if (bucketOrphans.length > 0) {
+      console.log(`   Found ${bucketOrphans.length} orphaned bucket files`)
+      const filesToDelete = bucketOrphans.map(name => name + '.geojson')
+      const { error: storageError } = await supabase.storage
+        .from(bucket)
+        .remove(filesToDelete)
+
+      if (storageError) {
+        console.error(`   ❌ Error deleting from bucket: ${storageError.message}`)
+      } else {
+        deletedFromBucket = bucketOrphans.length
+        for (const orphan of bucketOrphans) {
+          console.log(`   🗑️  ${orphan} (removed from bucket)`)
+        }
+      }
+    }
+
+    if (tableOrphans.length === 0 && bucketOrphans.length === 0) {
+      console.log('   ✅ No orphans found')
     }
   }
 
   console.log('\n📊 Sync Summary:')
   console.log(`   ✅ Inserted: ${inserted}`)
-  console.log(`   ⏭️  Skipped (existing): ${skipped}`)
+  console.log(`   🔄 Updated: ${updated}`)
+  console.log(`   ⏭️  Unchanged: ${unchanged}`)
+  console.log(`   🗑️  Deleted from table: ${deletedFromTable}`)
+  console.log(`   🗑️  Deleted from bucket: ${deletedFromBucket}`)
   console.log(`   ❌ Failed: ${failed}`)
-  console.log(`   📁 Total files: ${geojsonFiles.length}`)
+  console.log(`   📁 Local files: ${localFileSet ? localFileSet.size : 'N/A'}`)
 
   if (failed === 0) {
     console.log('\n✅ Geometries table synced successfully!')
