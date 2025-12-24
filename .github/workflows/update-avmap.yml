@@ -2,7 +2,7 @@ name: Update avmap.io Data
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'events.csv'
       - 'geometries/**'
