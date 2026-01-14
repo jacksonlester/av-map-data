@@ -28,6 +28,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r .dev/requirements-dev.txt
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,7 +43,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '.dev/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: cd .dev && npm ci
 
       - name: Determine environment
@@ -57,9 +65,9 @@ jobs:
           GITHUB_ACTIONS: true
         run: |
           if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
-            STAGING=true node .dev/import-csv.js
+            STAGING=true python3 .dev/import-csv.py
           else
-            node .dev/import-csv.js
+            python3 .dev/import-csv.py
           fi
 
       - name: Upload geometry files to storage
