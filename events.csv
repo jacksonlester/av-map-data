@@ -155,3 +155,4 @@ date,event_type,company,city,geometry_file,vehicles,platform,fares,direct_bookin
 2025-12-20,geometry_updated,Waymo,Silicon Valley,waymo-silicon-valley-december-20-2025-boundary.geojson,,,,,,,,,,,,https://www.reddit.com/r/waymo/comments/1prowr0/san_jose_service_area_expanded/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button,Thanks to u/dscreations for posting this on Reddit!
 2025-12-22,service_announced,Apollo Go,London,"-0.1276,51.5074",Apollo RT6,Lyft;Uber,Yes,No,Flexible,Safety Driver,Announced,,2026,https://www.apollogo.com/,,https://www.cnbc.com/2025/12/22/uber-lyft-set-to-trial-robotaxis-uk-in-partnership-chinas-baidu.html,Apollo Go to provide service with Uber AND Lyft in London in 2026
 2026-01-13,geometry_updated,Waymo,Austin,waymo-austin-january-13-2026-boundary.geojson,,,,,,,,,,,,https://x.com/reed/status/2011133349486871008?s=20,Waymo expands Austin service area according to a Waymo employee on X
+
