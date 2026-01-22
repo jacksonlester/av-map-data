@@ -224,14 +224,45 @@ async function syncGeometriesTable() {
   console.log(`   ❌ Failed: ${failed}`)
   console.log(`   📁 Local files: ${localFileSet ? localFileSet.size : 'N/A'}`)
 
-  if (failed === 0) {
-    console.log('\n✅ Geometries table synced successfully!')
-    console.log('\n📝 Next steps:')
-    console.log(`   Run: ${isStaging ? 'STAGING=true ' : ''}node rebuild-cache.js`)
-  } else {
+  if (failed > 0) {
     console.log('\n⚠️  Some entries failed to insert. Please check errors above.')
     process.exit(1)
   }
+
+  // Verify all writes are visible before exiting (prevents race condition with rebuild-cache.js)
+  if (inserted > 0 || updated > 0 || deletedFromTable > 0) {
+    console.log('\n🔍 Verifying database writes are visible...')
+    const expectedCount = localFileSet ? localFileSet.size : geojsonFiles.length
+
+    // Retry up to 5 times with 1 second delay
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const { data: verifyData, error: verifyError } = await supabase
+        .from(table)
+        .select('geometry_name', { count: 'exact' })
+
+      if (verifyError) {
+        console.error(`   ❌ Verification query failed: ${verifyError.message}`)
+        break
+      }
+
+      const actualCount = verifyData?.length || 0
+      if (actualCount === expectedCount) {
+        console.log(`   ✅ Verified: ${actualCount} entries in table (expected ${expectedCount})`)
+        break
+      }
+
+      if (attempt < 5) {
+        console.log(`   ⏳ Attempt ${attempt}: Found ${actualCount} entries, expected ${expectedCount}. Waiting...`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      } else {
+        console.log(`   ⚠️  Final count: ${actualCount} entries (expected ${expectedCount}) - proceeding anyway`)
+      }
+    }
+  }
+
+  console.log('\n✅ Geometries table synced successfully!')
+  console.log('\n📝 Next steps:')
+  console.log(`   Run: ${isStaging ? 'STAGING=true ' : ''}node rebuild-cache.js`)
 }
 
 syncGeometriesTable().catch(error => {
