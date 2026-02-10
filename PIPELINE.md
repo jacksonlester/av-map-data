@@ -2,41 +2,31 @@
 
 ## Automatic Triggers
 
-### When you push events.csv or geometries to STAGING:
-**Workflow:** update-cache.yml
-- Imports CSV to staging Supabase database
-- Uploads geometries to staging storage
-- Syncs geometries table in staging
-- Rebuilds staging cache (all-data.json)
+### Single workflow: `deploy-data.yml`
 
-### When you merge to MAIN (with events.csv or geometries changes):
-**Workflow 1:** update-cache.yml
-- Imports CSV to production Supabase database
-- Uploads geometries to production storage
-- Syncs geometries table in production
-- Rebuilds production cache (all-data.json)
+Runs on push to `main` or `staging` when `events.csv` or `geometries/**` change. Also runs validation on pull requests targeting either branch.
 
-**Workflow 2:** update-avmap.yml
-- Sends API call to trigger avmap.io repository rebuild
-- This updates the live website
+**Job 1: validate** (runs on all triggers including PRs)
+- Runs `pytest tests/ -v`
+- If this fails, the pipeline stops. Nothing is deployed.
 
-**Workflow 3:** validate.yml
-- Runs pytest integration tests
-- Validates data against schema
+**Job 2: update-cache** (runs only after validation passes, skipped on PRs)
+- Imports CSV to Supabase database (staging or production)
+- Uploads geometries to storage bucket
+- Syncs geometries metadata table
+- Rebuilds `all-data.json` cache and uploads to storage bucket
 
 ## Manual Triggers
 
 ### From GitHub Actions UI:
-
-**update-cache.yml**
-- Go to Actions tab > "Update Data Cache" > Run workflow
+- Go to Actions tab > "Validate & Update Cache" > Run workflow
 - Choose environment: staging or production
 - Manually rebuild cache without pushing code
 
 ## Required Files in .dev/
 
 Scripts:
-- import-csv.js (imports events.csv to Supabase)
+- import-csv.py (imports events.csv to Supabase)
 - upload-geometries.js (uploads geometry files to storage)
 - sync-geometries-table.js (syncs metadata table)
 - rebuild-cache.js (generates all-data.json cache)
@@ -63,6 +53,4 @@ python3 scripts/check_schema_version.py
 
 ## Workflow Files
 
-- .github/workflows/update-cache.yml (handles staging + production cache)
-- .github/workflows/update-avmap.yml (triggers avmap.io rebuild on main)
-- .github/workflows/validate.yml (runs tests on main)
+- .github/workflows/deploy-data.yml (validates, then updates cache for staging or production)
