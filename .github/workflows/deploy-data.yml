@@ -1,0 +1,142 @@
+name: Validate & Update Cache
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - 'events.csv'
+      - 'geometries/**'
+
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - 'events.csv'
+      - 'geometries/**'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to update'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  # ── Job 1: Validate ──────────────────────────────────────────────
+  # Runs pytest. If this fails, nothing else runs.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r .dev/requirements-dev.txt
+
+      - name: Run validation tests
+        run: pytest tests/ -v
+
+  # ── Job 2: Update Supabase cache ─────────────────────────────────
+  # Runs only after validation passes. Skipped on pull requests.
+  update-cache:
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r .dev/requirements-dev.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '.dev/package-lock.json'
+
+      - name: Install Node dependencies
+        run: cd .dev && npm ci
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Import CSV to database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true python3 .dev/import-csv.py
+          else
+            python3 .dev/import-csv.py
+          fi
+
+      - name: Upload geometry files to storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node .dev/upload-geometries.js
+          else
+            node .dev/upload-geometries.js
+          fi
+
+      - name: Sync geometries table with storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node .dev/sync-geometries-table.js
+          else
+            node .dev/sync-geometries-table.js
+          fi
+
+      - name: Rebuild cache
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STAGING: ${{ steps.env.outputs.environment == 'staging' }}
+          GITHUB_ACTIONS: true
+        run: |
+          if [ "${{ steps.env.outputs.environment }}" = "staging" ]; then
+            STAGING=true node .dev/rebuild-cache.js
+          else
+            node .dev/rebuild-cache.js
+          fi
+
+      - name: Summary
+        run: |
+          echo "✅ Cache updated successfully for ${{ steps.env.outputs.environment }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"

@@ -308,13 +308,7 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-Or use the wrapper script:
-
-```bash
-python3 scripts/validate.py
-```
-
-**Don't worry if you skip this** - pull requests run tests automatically via GitHub Actions, and we'll help fix any issues.
+**Don't worry if you skip this** - pull requests run validation automatically via GitHub Actions, and we'll help fix any issues.
 
 ## Schema changes (Advanced)
 
